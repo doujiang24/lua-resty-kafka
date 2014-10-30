@@ -35,7 +35,7 @@ __DATA__
             local producer = require "resty.kafka.producer"
 
             local broker_list = {
-                { "$TEST_NGINX_KAFKA_HOST", $TEST_NGINX_KAFKA_PORT}
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
             }
 
             local messages = {

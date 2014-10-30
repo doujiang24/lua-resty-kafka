@@ -7,9 +7,11 @@ local broker = require "resty.kafka.broker"
 
 
 local setmetatable = setmetatable
-local ipairs = ipairs
+local ngx_sleep = ngx.sleep
 local ngx_log = ngx.log
-local ngx_info = ngx.INFO
+local DEBUG = ngx.DEBUG
+local ERR = ngx.ERR
+local debug = ngx.config.debug
 
 
 local ok, new_tab = pcall(require, "table.new")
@@ -28,15 +30,17 @@ _M._VERSION = '0.01'
 local mt = { __index = _M }
 
 
-function _M.new(self, broker_list)
+function _M.new(self, broker_list, opts)
     return setmetatable({
         correlation_id = 1,
-        client_id = "client",
-        request_timeout = 2000,
         broker_list = broker_list,
         topic_partitions = {},
         broker_nodes = {},
         brokers = {},
+        client_id = opts and opts.client_id or "client",
+        request_timeout = opts and opts.request_timeout or 1000,
+        retry_interval = opts and opts.retry_interval or 100,   -- ms
+        max_retry = opts and opts.max_retry or 3
     }, mt)
 end
 
@@ -58,7 +62,7 @@ local function correlation_id(self)
 end
 
 
-local function produce_encode(self, topic, partition, messages)
+local function produce_encode(self, topic, messages)
     local timeout = self.request_timeout
     local client_id = self.client_id
     local id = correlation_id(self)
@@ -73,14 +77,14 @@ local function produce_encode(self, topic, partition, messages)
     req:int32(1)
     req:string(topic)
 
-    -- XX hard code for partition num
+    -- XX hard code for partition, modified in func: send
     req:int32(1)
-    req:int32(partition)
+    req:int32(0)
 
     -- MessageSetSize and MessageSet
     req:message_set(messages)
 
-    return req:package()
+    return req
 end
 
 
@@ -119,7 +123,7 @@ local function metadata_encode(self, topic)
     req:int32(1)
     req:string(topic)
 
-    return req:package()
+    return req
 end
 
 
@@ -179,31 +183,26 @@ local function metadata_decode(resp)
 end
 
 
-local function fetch_metadata(self, topic, force_refresh)
-    local partitions = self.topic_partitions[topic]
-    if not force_refresh and partitions then
-        return partitions
-    end
-
+local function _fetch_metadata(self, topic)
     local broker_list = self.broker_list
 
-    for i, config in ipairs(broker_list) do
-        local bk, err = broker:new(config[1], config[2])
+    for i = 1, #broker_list do
+        local host, port = broker_list[i].host, broker_list[i].port
+        local bk, err = broker:new(host, port)
 
         if not bk then
-            ngx_log(ngx_info, "broker connect failed, err:", err, config[1], config[2])
+            ngx_log(ERR, "broker connect failed, err:", err, host, port)
         else
-            local frame = metadata_encode(self, topic)
+            local req = metadata_encode(self, topic)
 
-            local resp, err = bk:send_receive(frame)
-            bk:set_keepalive()
+            local resp, err = bk:send_receive(req)
+            bk:keepalive()
 
             if not resp then
-                ngx_log(ngx_info, "broker metadata failed, err:", err, config[1], config[2])
+                ngx_log(ERR, "broker metadata failed, err:", err, host, port)
 
             else
                 local meta = metadata_decode(resp)
-
                 local info = meta.topics[topic]
 
                 self.topic_partitions[topic] = info
@@ -214,12 +213,26 @@ local function fetch_metadata(self, topic, force_refresh)
         end
     end
 
+    ngx_log(ERR, "refresh metadata failed")
     return nil, "refresh metadata failed"
 end
 
 
+local function fetch_metadata(self, topic)
+    local partitions = self.topic_partitions[topic]
+    if partitions then
+        return partitions
+    end
+
+    return _fetch_metadata(self, topic)
+end
+
+
 local function choose_partition(self, topic)
-    local partitions = fetch_metadata(self, topic)
+    local partitions, err = fetch_metadata(self, topic)
+    if not partitions then
+        return nil, err
+    end
 
     local partition = partitions.partitions[self.correlation_id % partitions.num + 1]
 
@@ -243,21 +256,33 @@ end
 
 
 function _M.send(self, topic, messages)
-    local broker, partition = choose_partition(self, topic)
+    local req = produce_encode(self, topic, messages)
 
-    if not broker then
-        return nil, partition
+    local retry, resp, err = 0
+
+    while retry <= self.max_retry do
+        local broker, partition = choose_partition(self, topic)
+        if not broker then
+            return nil, partition
+        end
+
+        req:partition(partition)
+        resp, err = broker:send_receive(req)
+        if resp then
+            return produce_decode(resp)
+        end
+
+        if debug then
+            ngx_log(DEBUG, "retry to send messages to kafka server: ", err)
+        end
+
+        ngx_sleep(self.retry_interval / 1000)
+        fetch_metadata(self, topic, true)
+
+        retry = retry + 1
     end
 
-    local frame = produce_encode(self, topic, partition, messages)
-
-    local resp, err = broker:send_receive(frame)
-
-    if not resp then
-        return nil, err
-    end
-
-    return produce_decode(resp)
+    return nil, err
 end
 
 

@@ -47,7 +47,7 @@ function _M.set_timeout(self, timeout)
 end
 
 
-function _M.set_keepalive(self, ...)
+function _M.keepalive(self, ...)
     local sock = self.sock
     if not sock then
         return nil, "not initialized"
@@ -67,13 +67,13 @@ function _M.close(self)
 end
 
 
-function _M.send_receive(self, package)
+function _M.send_receive(self, request)
     local sock = self.sock
     if not sock then
         return nil, "not initialized"
     end
 
-    local bytes, err = sock:send(package)
+    local bytes, err = sock:send(request:package())
     if not bytes then
         return nil, err
     end

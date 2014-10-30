@@ -10,7 +10,6 @@ local rshift = bit.rshift
 local band = bit.band
 local char = string.char
 local crc32 = ngx.crc32_long
-local null = ngx.null
 
 
 local ok, new_tab = pcall(require, "table.new")
@@ -70,7 +69,7 @@ function _M.new(self, apikey, correlation_id, client_id)
     local c_len = #client_id
 
     local req = {
-        null,   -- request size: int32
+        0,   -- request size: int32
         str_int16(apikey),
         str_int16(API_VERSION),
         str_int32(correlation_id),
@@ -152,13 +151,20 @@ local function message_package(msg)
 end
 
 
+function _M.partition(self, int)
+    local req = self._req
+
+    req[13] = str_int32(int)
+end
+
+
 function _M.message_set(self, messages)
     local req = self._req
     local off = self.offset + 1
     local msg_set_size = 0
 
-    for _i, msg in ipairs(messages) do
-        local crc32, str, msg_len = message_package(msg)
+    for i = 1, #messages do
+        local crc32, str, msg_len = message_package(messages[i])
 
         req[off] = str_int64(0) -- offset
         req[off + 1] = str_int32(msg_len) -- include the crc32 length
