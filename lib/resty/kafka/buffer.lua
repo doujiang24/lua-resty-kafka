@@ -64,7 +64,7 @@ end
 
 
 function _M.need_flush(self)
-    return (self.index >= self.flush_size) or (self.size >= self.flush_size)
+    return (self.index >= self.flush_length) or (self.size >= self.flush_size)
 end
 
 

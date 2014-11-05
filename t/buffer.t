@@ -26,7 +26,7 @@ run_tests();
 __DATA__
 
 
-=== TEST 1: simple send
+=== TEST 1: force flush
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
@@ -42,7 +42,7 @@ __DATA__
                 "halo world",
             }
 
-            local p, err = producer:init(broker_list)
+            local p = producer:init(broker_list)
 
             local resp, err = p:send("test", messages)
             if not resp then
@@ -50,12 +50,101 @@ __DATA__
                 return
             end
 
-            ngx.say(cjson.encode(resp))
+            ngx.say("buffer len: ", #p.buffers.test.accept_buffer.data)
+
+            p:flush()
+
+            ngx.say("buffer len: ", #p.buffers.test.accept_buffer.data)
         ';
     }
 --- request
 GET /t
---- response_body_like
-.*true.*
+--- response_body
+buffer len: 1
+buffer len: 0
+--- no_error_log
+[error]
+
+
+=== TEST 2: timer flush
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            local cjson = require "cjson"
+            local producer = require "resty.kafka.bufferproducer"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local messages = {
+                "halo world",
+            }
+
+            local p = producer:init(broker_list, nil, { flush_time = 1})
+
+            local resp, err = p:send("test", messages)
+            if not resp then
+                ngx.say("send err:", err)
+                return
+            end
+
+            ngx.say("buffer len: ", #p.buffers.test.accept_buffer.data)
+
+            ngx.sleep(1.1)
+
+            ngx.say("buffer len: ", #p.buffers.test.accept_buffer.data)
+        ';
+    }
+--- request
+GET /t
+--- response_body
+buffer len: 1
+buffer len: 0
+--- no_error_log
+[error]
+
+
+=== TEST 3: buffer flush
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            local cjson = require "cjson"
+            local producer = require "resty.kafka.bufferproducer"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local messages = {
+                "halo world",
+            }
+
+            local p = producer:init(broker_list, nil, { flush_length = 2})
+
+            local resp, err = p:send("test", messages)
+            if not resp then
+                ngx.say("send err:", err)
+                return
+            end
+
+            ngx.say("buffer len: ", p.buffers.test.accept_buffer.index)
+
+            local resp, err = p:send("test", messages)
+            ngx.say("buffer len: ", p.buffers.test.accept_buffer.index)
+
+            ngx.sleep(0.5)
+            ngx.say("buffer len: ", p.buffers.test.accept_buffer.index)
+
+        ';
+    }
+--- request
+GET /t
+--- response_body
+buffer len: 1
+buffer len: 2
+buffer len: 0
 --- no_error_log
 [error]

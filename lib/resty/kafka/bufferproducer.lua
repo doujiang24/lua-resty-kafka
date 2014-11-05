@@ -94,7 +94,7 @@ local function _flush(premature, self, force)
 end
 
 
-local function _flush_buffer(self)
+local function _flush_buffer(self, force)
     local ok, err = timer_at(0, _flush, self)
     if not ok then
         ngx_log(ERR, "failed to create timer at _flush_buffer, err: ", err)
@@ -104,7 +104,7 @@ end
 
 local _timer_flush
 _timer_flush = function (premature, self, time)
-    _flush(nil, self)
+    _flush(nil, self, true)
 
     if is_exiting() then
         _flush(nil, self, true)
@@ -127,6 +127,7 @@ function _M.init(self, broker_list, producer_opts, buffer_opts, cluster_name)
 
     local error_handle = buffer_opts and buffer_opts.error_handle
                          or function (...) return nil end
+    local flush_time = buffer_opts and buffer_opts.flush_time or 1
 
     local p = producer:new(broker_list, producer_opts)
     local bp = setmetatable({
@@ -137,7 +138,7 @@ function _M.init(self, broker_list, producer_opts, buffer_opts, cluster_name)
             }, mt)
 
     cluster_inited[cluster_name] = bp
-    _timer_flush(nil, bp, 1)
+    _timer_flush(nil, bp, flush_time)
     return bp
 end
 
@@ -157,12 +158,18 @@ function _M.send(self, topic, messages)
         self.error_handle(topic, messages)
     end
 
-    if is_exiting() or accept_buffer:need_flush() then
-        _flush_buffer(self)
+    local force = is_exiting()
+    if force or accept_buffer:need_flush() then
+        _flush_buffer(self, force)
         return true, "sending"
     end
 
     return true, "buffered"
+end
+
+
+function _M.flush(self)
+    _flush(nil, self, true)
 end
 
 
