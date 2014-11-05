@@ -23,7 +23,7 @@ end
 local REQUIRED_ACKS = 1
 
 
-local _M = new_tab(0, 4)
+local _M = new_tab(0, 3)
 _M._VERSION = '0.01'
 
 
@@ -31,26 +31,18 @@ local mt = { __index = _M }
 
 
 function _M.new(self, broker_list, opts)
+    local opts = opts or {}
+
     return setmetatable({
         correlation_id = 1,
         broker_list = broker_list,
         topic_partitions = {},
         broker_nodes = {},
-        brokers = {},
-        client_id = opts and opts.client_id or "client",
-        request_timeout = opts and opts.request_timeout or 1000,
-        retry_interval = opts and opts.retry_interval or 100,   -- ms
-        max_retry = opts and opts.max_retry or 3
+        client_id = opts.client_id or "client",
+        request_timeout = opts.request_timeout or 2000,
+        retry_interval = opts.retry_interval or 100,   -- ms
+        max_retry = opts.max_retry or 3,
     }, mt)
-end
-
-
-function _M.close(self)
-    local brokers = self.brokers
-
-    for i = 1, #brokers do
-        brokers[i]:close()
-    end
 end
 
 
@@ -238,12 +230,6 @@ local function choose_partition(self, topic)
 
     local id = partition.id
     local leader = partition.leader
-
-    local bk = self.brokers[id]
-    if bk then
-        return bk, id
-    end
-
     local config = self.broker_nodes[leader]
 
     local bk, err = broker:new(config.host, config.port)
@@ -262,14 +248,13 @@ function _M.send(self, topic, messages)
 
     while retry <= self.max_retry do
         local broker, partition = choose_partition(self, topic)
-        if not broker then
-            return nil, partition
-        end
-
-        req:partition(partition)
-        resp, err = broker:send_receive(req)
-        if resp then
-            return produce_decode(resp)
+        if broker then
+            req:partition(partition)
+            resp, err = broker:send_receive(req)
+            broker:keepalive()
+            if resp then
+                return produce_decode(resp)
+            end
         end
 
         if debug then
