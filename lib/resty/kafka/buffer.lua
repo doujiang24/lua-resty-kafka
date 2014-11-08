@@ -15,20 +15,13 @@ _M._VERSION = '0.01'
 
 
 function _M.new(self, opts)
-    local opts = opts or {}
-    local max_length = opts.max_length or 10000
-    local flush_size = opts.flush_size or 10240 -- 10KB
-    local flush_length = opts.flush_length or 100
-    local max_size = opts.max_size or  10485760 -- 10MB
-    local max_reuse = opts.max_reuse or 10000
-
     local buffer = {
-        data = new_tab(max_length, 0),
-        flush_size = flush_size,   -- 10KB
-        flush_length = flush_length,
-        max_size = max_size,   -- 10MB
-        max_length = max_length,
-        max_reuse = max_reuse,
+        data = new_tab(opts.max_length, 0),
+        flush_size = opts.flush_size,
+        flush_length = opts.flush_length,
+        max_size = opts.max_size,
+        max_length = opts.max_length,
+        max_reuse = opts.max_reuse,
         index = 0,
         used = 0,
         size = 0,
@@ -59,7 +52,7 @@ function _M.add(self, messages)
 
     self.size = size
     self.index = new_index
-    return new_index
+    return true
 end
 
 

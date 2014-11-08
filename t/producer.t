@@ -17,6 +17,7 @@ our $HttpConfig = qq{
 $ENV{TEST_NGINX_RESOLVER} = '8.8.8.8';
 $ENV{TEST_NGINX_KAFKA_HOST} = '127.0.0.1';
 $ENV{TEST_NGINX_KAFKA_PORT} = '9092';
+$ENV{TEST_NGINX_KAFKA_ERR_PORT} = '9091';
 
 no_long_string();
 #no_diff();
@@ -72,7 +73,7 @@ GET /t
             local producer = require "resty.kafka.producer"
 
             local broker_list = {
-                { host = "$TEST_NGINX_KAFKA_HOST", port = 9091 },
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_ERR_PORT },
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
             }
 

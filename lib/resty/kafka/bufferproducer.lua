@@ -13,6 +13,7 @@ local ERR = ngx.ERR
 local ALERT = ngx.ALERT
 local debug = ngx.config.debug
 local is_exiting = ngx.worker.exiting
+local ngx_sleep = ngx.sleep
 
 
 local ok, new_tab = pcall(require, "table.new")
@@ -65,7 +66,7 @@ local function _flush(premature, self, force)
             if debug then
                 ngx_log(DEBUG, "last flush require lock")
             end
-            ngx_sleep(1)
+            ngx_sleep(0.1)
         until _flush_lock(self)
     end
 
@@ -83,7 +84,7 @@ local function _flush(premature, self, force)
             -- send data
             if index > 0 then
                 local p = self.producer
-                if not p:send(topic, data, index) then
+                if not p:send(topic, data, index) and self.error_handle then
                     self.error_handle(topic, data, index)
                 end
             end
@@ -118,27 +119,33 @@ _timer_flush = function (premature, self, time)
 end
 
 
-function _M.init(self, broker_list, producer_opts, buffer_opts, cluster_name)
+function _M.init(self, broker_list, opts, cluster_name)
     local cluster_name = cluster_name or "default"
     local bp = cluster_inited[cluster_name]
     if bp then
         return bp
     end
 
-    local error_handle = buffer_opts and buffer_opts.error_handle
-                         or function (...) return nil end
-    local flush_time = buffer_opts and buffer_opts.flush_time or 1
+    local opts = opts or {}
 
-    local p = producer:new(broker_list, producer_opts)
+    local buffer_opts = {
+        flush_length = opts.flush_length or 100,
+        flush_size = opts.flush_size or 10240,  -- 10KB
+        max_length = opts.max_length or 10000,
+        max_size = opts.max_size or 10485760,   -- 10MB
+        max_reuse = opts.max_reuse or 10000,
+    }
+
+    local p = producer:new(broker_list, opts)
     local bp = setmetatable({
                 producer = p,
                 buffer_opts = buffer_opts,
                 buffers = {},
-                error_handle = error_handle,
+                error_handle = opts.error_handle,
             }, mt)
 
     cluster_inited[cluster_name] = bp
-    _timer_flush(nil, bp, flush_time)
+    _timer_flush(nil, bp, opts.flush_time or 1)
     return bp
 end
 
@@ -155,7 +162,7 @@ function _M.send(self, topic, messages)
 
     local ok, err = accept_buffer:add(messages)
     if not ok then
-        self.error_handle(topic, messages)
+        return nil, err
     end
 
     local force = is_exiting()

@@ -54,7 +54,7 @@ local function correlation_id(self)
 end
 
 
-local function produce_encode(self, topic, messages)
+local function produce_encode(self, topic, messages, index)
     local timeout = self.request_timeout
     local client_id = self.client_id
     local id = correlation_id(self)
@@ -74,7 +74,7 @@ local function produce_encode(self, topic, messages)
     req:int32(0)
 
     -- MessageSetSize and MessageSet
-    req:message_set(messages)
+    req:message_set(messages, index)
 
     return req
 end
@@ -241,8 +241,8 @@ local function choose_partition(self, topic)
 end
 
 
-function _M.send(self, topic, messages)
-    local req = produce_encode(self, topic, messages)
+function _M.send(self, topic, messages, index)
+    local req = produce_encode(self, topic, messages, index)
 
     local retry, resp, err = 0
 

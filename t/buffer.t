@@ -17,6 +17,7 @@ our $HttpConfig = qq{
 $ENV{TEST_NGINX_RESOLVER} = '8.8.8.8';
 $ENV{TEST_NGINX_KAFKA_HOST} = '127.0.0.1';
 $ENV{TEST_NGINX_KAFKA_PORT} = '9092';
+$ENV{TEST_NGINX_KAFKA_ERR_PORT} = '9091';
 
 no_long_string();
 #no_diff();
@@ -82,7 +83,7 @@ buffer len: 0
                 "halo world",
             }
 
-            local p = producer:init(broker_list, nil, { flush_time = 1})
+            local p = producer:init(broker_list, { flush_time = 1})
 
             local resp, err = p:send("test", messages)
             if not resp then
@@ -122,7 +123,7 @@ buffer len: 0
                 "halo world",
             }
 
-            local p = producer:init(broker_list, nil, { flush_length = 2})
+            local p = producer:init(broker_list, { flush_length = 2})
 
             local resp, err = p:send("test", messages)
             if not resp then
@@ -148,3 +149,42 @@ buffer len: 2
 buffer len: 0
 --- no_error_log
 [error]
+
+
+=== TEST 4: error handle
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            local cjson = require "cjson"
+            local producer = require "resty.kafka.bufferproducer"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_ERR_PORT },
+            }
+
+            local messages = {
+                "halo world",
+            }
+
+            local error_handle = function (topic, messages, index)
+                ngx.log(ngx.ERR, "failed to send to kafka, topic: ", topic)
+            end
+
+            local p = producer:init(broker_list, { flush_length = 1, error_handle = error_handle })
+
+            local resp, err = p:send("test", messages)
+            if not resp then
+                ngx.say("send err:", err)
+                return
+            end
+
+            ngx.sleep(1)
+            ngx.say("nothing to say")
+        ';
+    }
+--- request
+GET /t
+--- response_body
+nothing to say
+--- error_log: failed to send to kafka, topic: test

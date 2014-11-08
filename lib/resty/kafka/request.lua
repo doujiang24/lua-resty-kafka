@@ -158,12 +158,13 @@ function _M.partition(self, int)
 end
 
 
-function _M.message_set(self, messages)
+function _M.message_set(self, messages, index)
     local req = self._req
     local off = self.offset + 1
     local msg_set_size = 0
+    local index = index or #messages
 
-    for i = 1, #messages do
+    for i = 1, index do
         local crc32, str, msg_len = message_package(messages[i])
 
         req[off] = str_int64(0) -- offset
