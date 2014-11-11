@@ -20,9 +20,6 @@ if not ok then
 end
 
 
-local REQUIRED_ACKS = 1
-
-
 local _M = new_tab(0, 3)
 _M._VERSION = '0.01'
 
@@ -42,6 +39,8 @@ function _M.new(self, broker_list, opts)
         request_timeout = opts.request_timeout or 2000,
         retry_interval = opts.retry_interval or 100,   -- ms
         max_retry = opts.max_retry or 3,
+        required_acks = (opts.required_acks and opts.required_acks > 0)
+                        and opts.required_acks or 1,
     }, mt)
 end
 
@@ -62,7 +61,7 @@ local function produce_encode(self, topic, messages, index)
     local req = request:new(request.ProduceRequest, id, client_id)
 
     --XX hard code for requiredAcks
-    req:int16(REQUIRED_ACKS)
+    req:int16(self.required_acks)
     req:int32(timeout)
 
     -- XX hard code for topic num
