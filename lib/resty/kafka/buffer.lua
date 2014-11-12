@@ -19,7 +19,8 @@ function _M.new(self, opts)
         data = new_tab(opts.max_length, 0),
         flush_size = opts.flush_size,
         flush_length = opts.flush_length,
-        max_size = opts.max_size,
+        max_size = opts.max_size,   -- should be less than socket.request.max.bytes
+                                    -- config in the kafka server, default 100M
         max_length = opts.max_length,
         max_reuse = opts.max_reuse,
         index = 0,
