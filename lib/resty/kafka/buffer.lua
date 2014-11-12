@@ -75,6 +75,7 @@ function _M.flush(self)
 
     if self.used > self.max_reuse then
         self.data = new_tab(self.max_length, 0)
+        self.used = 0
     end
 
     return data, index
