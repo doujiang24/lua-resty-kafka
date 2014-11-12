@@ -196,10 +196,14 @@ local function _fetch_metadata(self, topic)
                 local meta = metadata_decode(resp)
                 local info = meta.topics[topic]
 
-                self.topic_partitions[topic] = info
-                self.broker_nodes = meta.brokers
-
-                return info
+                if info.num and info.num > 0 then
+                    self.topic_partitions[topic] = info
+                    self.broker_nodes = meta.brokers
+                    return info
+                else
+                    ngx_log(ERR, "not found topic: " .. topic)
+                    return nil, "not found topic: " .. topic
+                end
             end
         end
     end
@@ -254,6 +258,8 @@ function _M.send(self, topic, messages, index)
             if resp then
                 return produce_decode(resp)
             end
+        else
+            err = partition
         end
 
         if debug then
@@ -261,7 +267,7 @@ function _M.send(self, topic, messages, index)
         end
 
         ngx_sleep(self.retry_interval / 1000)
-        fetch_metadata(self, topic, true)
+        _fetch_metadata(self, topic)
 
         retry = retry + 1
     end
