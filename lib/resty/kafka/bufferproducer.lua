@@ -96,7 +96,7 @@ end
 
 
 local function _flush_buffer(self, force)
-    local ok, err = timer_at(0, _flush, self)
+    local ok, err = timer_at(0, _flush, self, force)
     if not ok then
         ngx_log(ERR, "failed to create timer at _flush_buffer, err: ", err)
     end
