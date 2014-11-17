@@ -47,7 +47,7 @@ function _M.set_timeout(self, timeout)
 end
 
 
-function _M.keepalive(self, ...)
+function _M.set_keepalive(self, ...)
     local sock = self.sock
     if not sock then
         return nil, "not initialized"
