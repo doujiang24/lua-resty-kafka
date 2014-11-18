@@ -30,7 +30,6 @@ Synopsis
     server {
         location /test {
             content_by_lua '
-                local cjson = require "cjson"
                 local producer = require "resty.kafka.producer"
 
                 local broker_list = {
@@ -42,13 +41,13 @@ Synopsis
 
                 local p, err = producer:new(broker_list)
 
-                local resp, err = p:send("test", messages)
-                if not resp then
+                local offset, err = p:send("test", messages)
+                if not offset then
                     ngx.say("send err:", err)
                     return
                 end
 
-                ngx.say("send success, result: ", cjson.encode(resp))
+                ngx.say("send success, offset: ", offset)
             ';
         }
     }
@@ -129,7 +128,7 @@ producer config
 
 * `required_acks`
 
-    Specifies the `request.required.acks`, can not be zero. Default `1`.
+    Specifies the `request.required.acks`, *SHOULD NOT* be zero. Default `1`.
 
 * `max_retry`
 
@@ -147,7 +146,7 @@ socket config
 
 * `socket_timeout`
 
-    Specifies the network timeout threshold in milliseconds. Can not be smaller than the `request_timeout`.
+    Specifies the network timeout threshold in milliseconds. *SHOULD NOT* be smaller than the `request_timeout`.
 
 * `keepalive_timeout`
 
@@ -164,7 +163,7 @@ Not support compression and self partitioner (use loop inside).
 
 Sends the `messages` argument to the kafka server.
 
-In case of success, returns the response table.
+In case of success, returns the offset of the current broker and partition.
 In case of errors, returns `nil` with a string describing the error.
 
 
@@ -194,7 +193,7 @@ And we can init more than one kafka cluster, specified by optional `cluster_name
 
 An optional options table can be specified. The following options are as follows:
 
-producer config & socket_config as producer module
+producer config & socket_config same as producer module
 
 buffer config
 
@@ -217,7 +216,7 @@ buffer config
 * `max_size`
 
     Specifies the maximal buffer size to buffer. Default 10485760, 1MB.
-    Be carefull, should be smaller than the `socket.request.max.bytes` config in kafka server.
+    Be carefull, *SHOULD* be smaller than the `socket.request.max.bytes` config in kafka server.
 
 * `max_reuse`
 
@@ -232,14 +231,14 @@ buffer producer config
     the failed messages is 1 from `index` in the messages.
 
 #### send
-=======
+
 `syntax: ok, err = p:send(topic, messages)`
 
 The `messages` will write to the buffer first.
 It will send to the kafka server when the buffer exceed the `flush_size` or `flush_length`,
 or every `flush_time` flush the buffer.
 
-It case of success write to buffer, returns `true`.
+It case of success, returns `true`.
 In case of errors, returns `nil` with a string describing the error (`buffer overflow`).
 
 
@@ -300,4 +299,3 @@ See Also
 * the kafka protocol: https://cwiki.apache.org/confluence/display/KAFKA/A+Guide+To+The+Kafka+Protocol
 * the [lua-resty-redis](https://github.com/openresty/lua-resty-redis) library
 * the [lua-resty-logger-socket](https://github.com/cloudflare/lua-resty-logger-socket) library
-
