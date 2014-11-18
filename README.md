@@ -54,8 +54,7 @@ Synopsis
     }
 ```
 
-or use the bufferproducer
-
+bufferproducer
 
 ```lua
     # you do not need the following line if you are using
@@ -76,7 +75,7 @@ or use the bufferproducer
                     "halo world",
                 }
 
-                local p = producer:init(broker_list, { flush_time = 1 })
+                local p = producer:new(broker_list, { flush_time = 1 })
 
                 local resp, err = p:send("test", messages)
                 if not resp then
@@ -89,6 +88,160 @@ or use the bufferproducer
         }
     }
 ```
+
+
+Modules
+=======
+
+resty.kafka.producer
+----------------------
+
+To load this module, just do this
+
+```lua
+    local producer = require "resty.kafka.producer"
+```
+
+### Methods
+
+#### new
+
+`syntax: p = producer:new(broker_list, opts)`
+
+The `broker_list` is a list of broker, like the below
+
+```json
+{
+    {
+        "host": "127.0.0.1",
+        "port": 9092
+    }
+}
+```
+
+An optional options table can be specified. The following options are as follows:
+
+producer config
+
+* `request_timeout`
+
+    Specifies the `request.timeout.ms`. Default `2000 ms`
+
+* `required_acks`
+
+    Specifies the `request.required.acks`, can not be zero. Default `1`.
+
+* `max_retry`
+
+    Specifies the `message.send.max.retries`. Default `3`.
+
+* `retry_interval`
+
+    Specifies the `retry.backoff.ms`. Default `100`.
+
+* `metadata_refresh_interval`
+
+    Specifies the `topic.metadata.refresh.interval.ms`. Default none auto refresh.
+
+socket config
+
+* `socket_timeout`
+
+    Specifies the network timeout threshold in milliseconds. Can not be smaller than the `request_timeout`.
+
+* `keepalive_timeout`
+
+    Specifies the maximal idle timeout (in milliseconds) for the keepalive connection.
+
+* `keepalive_size`
+
+    Specifies the maximal number of connections allowed in the connection pool for per Nginx worker.
+
+Not support compression and self partitioner (use loop inside).
+
+#### send
+`syntax: ok, err = p:send(topic, messages)`
+
+Sends the `messages` argument to the kafka server.
+
+In case of success, returns the response table.
+In case of errors, returns `nil` with a string describing the error.
+
+
+Modules
+=======
+
+resty.kafka.bufferproducer
+----------------------
+
+This module use buffer inside, message will write to buffered first.
+
+To load this module, just do this
+
+```lua
+    local producer = require "resty.kafka.bufferproducer"
+```
+
+### Methods
+
+#### new
+
+`syntax: p = bufferproducer:new(broker_list, opts, cluster_name)`
+
+This will inited to the whole Nginx worker.
+
+And we can init more than one kafka cluster, specified by optional `cluster_name`.
+
+An optional options table can be specified. The following options are as follows:
+
+producer config & socket_config as producer module
+
+buffer config
+
+* `flush_length`
+
+    Specifies the minimal buffer length(message num) to flush. Default 100.
+
+* `flush_size`
+
+    Specifies the minimal buffer size(total byte size) to flush. Default 10240, 10KB.
+
+* `flush_time`
+
+    Specifies the time (in milliseconds) to flush. Default 1000ms.
+
+* `max_length`
+
+    Specifies the maximal buffer length to buffer. Default 10000.
+
+* `max_size`
+
+    Specifies the maximal buffer size to buffer. Default 10485760, 1MB.
+    Be carefull, should be smaller than the `socket.request.max.bytes` config in kafka server.
+
+* `max_reuse`
+
+    Specifies the maximal buffer reused num. Default 10000.
+
+buffer producer config
+
+* `error_handle`
+
+    Specifies the error handle, handle data when buffer send to kafka error.
+    `syntax: error_handle = function (topic, messages, index) end`,
+    the failed messages is 1 from `index` in the messages.
+
+#### send
+=======
+`syntax: ok, err = p:send(topic, messages)`
+
+The `messages` will write to the buffer first.
+It will send to the kafka server when the buffer exceed the `flush_size` or `flush_length`,
+or every `flush_time` flush the buffer.
+
+It case of success write to buffer, returns `true`.
+In case of errors, returns `nil` with a string describing the error (`buffer overflow`).
+
 
 Installation
 ============
