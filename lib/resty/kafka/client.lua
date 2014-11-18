@@ -9,6 +9,7 @@ local setmetatable = setmetatable
 local timer_at = ngx.timer.at
 local ngx_log = ngx.log
 local ERR = ngx.ERR
+local pid = ngx.worker.pid
 
 
 local ok, new_tab = pcall(require, "table.new")
@@ -17,7 +18,7 @@ if not ok then
 end
 
 
-local _M = new_tab(0, 3)
+local _M = new_tab(0, 4)
 _M._VERSION = '0.01'
 
 
@@ -100,11 +101,12 @@ end
 local function _fetch_metadata(self)
     local broker_list = self.broker_list
     local topics = self.topics
+    local sc = self.socket_config
 
     for i = 1, #broker_list do
         local host, port = broker_list[i].host, broker_list[i].port
-        local bk, err = broker:new(host, port)
-
+        local bk, err = broker:new(host, port, sc.socket_timeout,
+                                    sc.keepalive_timeout, sc.keepalive_size)
         if not bk then
             ngx_log(ERR, "broker connect failed, err:", err, host, port)
         else
@@ -146,13 +148,14 @@ local function meta_refresh(premature, self, interval)
 end
 
 
-function _M.new(self, broker_list, client_id, refresh_interval, topics)
+function _M.new(self, broker_list, refresh_interval, socket_config)
     local cli = setmetatable({
         broker_list = broker_list,
         topic_partitions = {},
         broker_nodes = {},
-        client_id = client_id or "",
-        topics = topics or {},
+        topics = {},
+        client_id = "worker:" .. pid(),
+        socket_config = socket_config,
     }, mt)
 
     if refresh_interval then
@@ -160,11 +163,6 @@ function _M.new(self, broker_list, client_id, refresh_interval, topics)
     end
 
     return cli
-end
-
-
-function _M.id(self)
-    return self.client_id
 end
 
 

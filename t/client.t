@@ -44,7 +44,13 @@ __DATA__
                 "halo world",
             }
 
-            local cli = client:new(broker_list)
+            local socket_config = {
+                keepalive_timeout = 10000,
+                keepalive_size = 2,
+                socket_timeout = 1000,
+            }
+
+            local cli = client:new(broker_list, nil, socket_config)
 
             local brokers, partitions = cli:fetch_metadata("test")
             if not brokers then
@@ -80,7 +86,17 @@ GET /t
                 "halo world",
             }
 
-            local cli = client:new(broker_list, nil, 100, { "test", "test" })
+            local socket_config = {
+                keepalive_timeout = 10000,
+                keepalive_size = 2,
+                socket_timeout = 1000,
+            }
+
+            local cli = client:new(broker_list, 100, socket_config)
+            -- XXX just hack for test
+            cli.topics = { "test", "test" }
+
+            ngx.sleep(0.2)
 
             ngx.say(cjson.encode(cli.topic_partitions))
         ';

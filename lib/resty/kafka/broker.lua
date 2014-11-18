@@ -15,55 +15,41 @@ if not ok then
 end
 
 
-local _M = new_tab(0, 6)
+local _M = new_tab(0, 5)
 _M._VERSION = '0.01'
 
 
 local mt = { __index = _M }
 
 
-function _M.new(self, ...)
+function _M.new(self, host, port, timeout, keepalive_timeout, keepalive_size)
     local sock, err = tcp()
     if not sock then
         return nil, err
     end
 
-    local ok, err = sock:connect(...)
+    local ok, err = sock:connect(host, port)
     if not ok then
         return nil, err
     end
 
-    return setmetatable({ sock = sock }, mt)
+    sock:settimeout(timeout)
+
+    return setmetatable({
+        keepalive_timeout = keepalive_timeout,
+        size = keepalive_size,
+        sock = sock,
+    }, mt)
 end
 
 
-function _M.set_timeout(self, timeout)
+function _M.set_keepalive(self)
     local sock = self.sock
     if not sock then
         return nil, "not initialized"
     end
 
-    return sock:settimeout(timeout)
-end
-
-
-function _M.set_keepalive(self, ...)
-    local sock = self.sock
-    if not sock then
-        return nil, "not initialized"
-    end
-
-    return sock:setkeepalive(...)
-end
-
-
-function _M.close(self)
-    local sock = self.sock
-    if not sock then
-        return nil, "not initialized"
-    end
-
-    return sock:close()
+    return sock:setkeepalive(self.keepalive_timeout, self.size)
 end
 
 

@@ -30,16 +30,24 @@ local mt = { __index = _M }
 
 function _M.new(self, broker_list, opts)
     local opts = opts or {}
-    local cli = client:new(broker_list, opts.client_id, opts.meta_refresh_interval)
+    local request_timeout = opts.request_timeout or 2000
+    local socket_config = {
+        socket_timeout = opts.socket_timeout or (request_timeout + 1000),
+        keepalive_timeout = opts.keepalive_timeout or 600 * 1000, -- 10 min
+        keepalive_size = opts.keepalive_size or 2,
+    }
+
+    local cli = client:new(broker_list, opts.metadata_refresh_interval, socket_config)
 
     return setmetatable({
         client = cli,
         correlation_id = 1,
-        request_timeout = opts.request_timeout or 2000,
+        request_timeout = request_timeout,
         retry_interval = opts.retry_interval or 100,   -- ms
         max_retry = opts.max_retry or 3,
-        required_acks = (opts.required_acks and opts.required_acks > 0)
-                        and opts.required_acks or 1,
+        required_acks = opts.required_acks or 1,
+        -- socket config
+        socket_config = socket_config,
     }, mt)
 end
 
@@ -54,10 +62,9 @@ end
 
 local function produce_encode(self, topic, messages, index)
     local timeout = self.request_timeout
-    local client_id = self.client:id()
     local id = correlation_id(self)
 
-    local req = request:new(request.ProduceRequest, id, client_id)
+    local req = request:new(request.ProduceRequest, id, self.client.client_id)
 
     req:int16(self.required_acks)
     req:int32(timeout)
@@ -112,7 +119,9 @@ local function choose_partition(self, topic)
     local id = partition.id
     local config = brokers[partition.leader]
 
-    local bk, err = broker:new(config.host, config.port)
+    local sc = self.socket_config
+    local bk, err = broker:new(config.host, config.port, sc.socket_timeout,
+                                sc.keepalive_timeout, sc.keepalive_size)
     if not bk then
         return nil, err
     end

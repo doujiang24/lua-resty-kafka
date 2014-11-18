@@ -119,7 +119,7 @@ _timer_flush = function (premature, self, time)
 end
 
 
-function _M.init(self, broker_list, opts, cluster_name)
+function _M.new(self, broker_list, opts, cluster_name)
     local cluster_name = cluster_name or "default"
     local bp = cluster_inited[cluster_name]
     if bp then
@@ -132,7 +132,7 @@ function _M.init(self, broker_list, opts, cluster_name)
         flush_length = opts.flush_length or 100,
         flush_size = opts.flush_size or 10240,  -- 10KB
         max_length = opts.max_length or 10000,
-        max_size = opts.max_size or 10485760,   -- 10MB
+        max_size = opts.max_size or 1048576,    -- 1MB
         max_reuse = opts.max_reuse or 10000,
     }
 
@@ -145,7 +145,7 @@ function _M.init(self, broker_list, opts, cluster_name)
             }, mt)
 
     cluster_inited[cluster_name] = bp
-    _timer_flush(nil, bp, opts.flush_time or 1)
+    _timer_flush(nil, bp, opts.flush_time and (opts.flush_time / 1000) or 1)
     return bp
 end
 
@@ -168,10 +168,9 @@ function _M.send(self, topic, messages)
     local force = is_exiting()
     if force or accept_buffer:need_flush() then
         _flush_buffer(self, force)
-        return true, "sending"
     end
 
-    return true, "buffered"
+    return true
 end
 
 

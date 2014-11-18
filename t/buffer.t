@@ -43,7 +43,7 @@ __DATA__
                 "halo world",
             }
 
-            local p = producer:init(broker_list)
+            local p = producer:new(broker_list)
 
             local resp, err = p:send("test", messages)
             if not resp then
@@ -83,7 +83,7 @@ buffer len: 0
                 "halo world",
             }
 
-            local p = producer:init(broker_list, { flush_time = 1})
+            local p = producer:new(broker_list, { flush_time = 1})
 
             local resp, err = p:send("test", messages)
             if not resp then
@@ -123,7 +123,7 @@ buffer len: 0
                 "halo world",
             }
 
-            local p = producer:init(broker_list, { flush_length = 2})
+            local p = producer:new(broker_list, { flush_length = 2})
 
             local resp, err = p:send("test", messages)
             if not resp then
@@ -171,7 +171,7 @@ buffer len: 0
                 ngx.log(ngx.ERR, "failed to send to kafka, topic: ", topic)
             end
 
-            local p = producer:init(broker_list, { flush_length = 1, error_handle = error_handle })
+            local p = producer:new(broker_list, { flush_length = 1, error_handle = error_handle })
 
             local resp, err = p:send("test", messages)
             if not resp then
