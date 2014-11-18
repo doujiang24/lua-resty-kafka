@@ -83,7 +83,7 @@ buffer len: 0
                 "halo world",
             }
 
-            local p = producer:new(broker_list, { flush_time = 1})
+            local p = producer:new(broker_list, { flush_time = 1000 })
 
             local resp, err = p:send("test", messages)
             if not resp then

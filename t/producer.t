@@ -44,15 +44,15 @@ __DATA__
                 "halo world",
             }
 
-            local p, err = producer:new(broker_list)
+            local p = producer:new(broker_list, { request_timeout = 1 })
 
-            local resp, err = p:send("test", messages)
-            if not resp then
+            local offset, err = p:send("test", messages)
+            if not offset then
                 ngx.say("send err:", err)
                 return
             end
 
-            ngx.say(cjson.encode(resp))
+            ngx.say("offset: ", offset)
         ';
     }
 --- request
@@ -83,13 +83,13 @@ GET /t
 
             local p, err = producer:new(broker_list)
 
-            local resp, err = p:send("test", messages)
-            if not resp then
+            local offset, err = p:send("test", messages)
+            if not offset then
                 ngx.say("send err:", err)
                 return
             end
 
-            ngx.say(cjson.encode(resp))
+            ngx.say("offset: ", offset)
         ';
     }
 --- request
@@ -130,6 +130,7 @@ GET /t
                 return
             end
 
+            -- hack use for test
             ngx.say(cjson.encode(p.client.topic_partitions["test"]))
         ';
     }

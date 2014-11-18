@@ -5,6 +5,7 @@ local response = require "resty.kafka.response"
 local request = require "resty.kafka.request"
 local client = require "resty.kafka.client"
 local broker = require "resty.kafka.broker"
+local Errors = require "resty.kafka.errors"
 
 
 local setmetatable = setmetatable
@@ -142,7 +143,12 @@ function _M.send(self, topic, messages, index)
             resp, err = bk:send_receive(req)
             bk:set_keepalive()
             if resp then
-                return produce_decode(resp)
+                local r = produce_decode(resp)[topic][partition]
+                if r.errcode == 0 then
+                    return r.offset
+                else
+                    err = Errors[r.errcode]
+                end
             end
         else
             err = partition
