@@ -10,7 +10,6 @@ local timer_at = ngx.timer.at
 local ngx_log = ngx.log
 local DEBUG = ngx.DEBUG
 local ERR = ngx.ERR
-local ALERT = ngx.ALERT
 local debug = ngx.config.debug
 local is_exiting = ngx.worker.exiting
 local ngx_sleep = ngx.sleep
@@ -64,7 +63,7 @@ local function _flush(premature, self, force)
 
         repeat
             if debug then
-                ngx_log(DEBUG, "last flush require lock")
+                ngx_log(DEBUG, "last flush required lock")
             end
             ngx_sleep(0.1)
         until _flush_lock(self)
@@ -83,9 +82,9 @@ local function _flush(premature, self, force)
 
             -- send data
             if index > 0 then
-                local p = self.producer
-                if not p:send(topic, data, index) and self.error_handle then
-                    self.error_handle(topic, data, index)
+                local ok, err = self.producer:send(topic, data, index)
+                if not ok and self.error_handle then
+                    self.error_handle(topic, data, index, err)
                 end
             end
         end
@@ -114,38 +113,35 @@ _timer_flush = function (premature, self, time)
 
     local ok, err = timer_at(time, _timer_flush, self, time)
     if not ok then
-        ngx_log(ALERT, "failed to create timer at _timer_flush, err: ", err)
+        ngx_log(ERR, "failed to create timer at _timer_flush, err: ", err)
     end
 end
 
 
-function _M.new(self, broker_list, opts, cluster_name)
+function _M.new(self, producer, buffer_config, cluster_name)
     local cluster_name = cluster_name or "default"
     local bp = cluster_inited[cluster_name]
     if bp then
         return bp
     end
 
-    local opts = opts or {}
+    local opts = buffer_config or {}
+    opts.flush_length = opts.flush_length or 100
+    opts.flush_size = opts.flush_size or 10240  -- 10KB
+    opts.max_length = opts.max_length or 10000
+    opts.max_size = opts.max_size or 1048576    -- 1MB
+    opts.max_reuse = opts.max_reuse or 10000
+    opts.flush_time = opts.flush_time or 1000   -- 1s
 
-    local buffer_opts = {
-        flush_length = opts.flush_length or 100,
-        flush_size = opts.flush_size or 10240,  -- 10KB
-        max_length = opts.max_length or 10000,
-        max_size = opts.max_size or 1048576,    -- 1MB
-        max_reuse = opts.max_reuse or 10000,
-    }
-
-    local p = producer:new(broker_list, opts)
     local bp = setmetatable({
-                producer = p,
-                buffer_opts = buffer_opts,
+                producer = producer,
+                buffer_opts = opts,
                 buffers = {},
                 error_handle = opts.error_handle,
             }, mt)
 
     cluster_inited[cluster_name] = bp
-    _timer_flush(nil, bp, opts.flush_time and (opts.flush_time / 1000) or 1)
+    _timer_flush(nil, bp, opts.flush_time / 1000)
     return bp
 end
 

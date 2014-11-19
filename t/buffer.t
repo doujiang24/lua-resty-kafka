@@ -33,7 +33,9 @@ __DATA__
     location /t {
         content_by_lua '
             local cjson = require "cjson"
-            local producer = require "resty.kafka.bufferproducer"
+            local bufferproducer = require "resty.kafka.bufferproducer"
+            local producer = require "resty.kafka.producer"
+            local client = require "resty.kafka.client"
 
             local broker_list = {
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
@@ -43,7 +45,7 @@ __DATA__
                 "halo world",
             }
 
-            local p = producer:new(broker_list)
+            local p = bufferproducer:new(producer:new(client:new(broker_list)))
 
             local resp, err = p:send("test", messages)
             if not resp then
@@ -73,7 +75,9 @@ buffer len: 0
     location /t {
         content_by_lua '
             local cjson = require "cjson"
-            local producer = require "resty.kafka.bufferproducer"
+            local bufferproducer = require "resty.kafka.bufferproducer"
+            local producer = require "resty.kafka.producer"
+            local client = require "resty.kafka.client"
 
             local broker_list = {
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
@@ -83,7 +87,8 @@ buffer len: 0
                 "halo world",
             }
 
-            local p = producer:new(broker_list, { flush_time = 1000 })
+            local pd = producer:new(client:new(broker_list))
+            local p = bufferproducer:new(pd, { flush_time = 1000 })
 
             local resp, err = p:send("test", messages)
             if not resp then
@@ -113,7 +118,9 @@ buffer len: 0
     location /t {
         content_by_lua '
             local cjson = require "cjson"
-            local producer = require "resty.kafka.bufferproducer"
+            local bufferproducer = require "resty.kafka.bufferproducer"
+            local producer = require "resty.kafka.producer"
+            local client = require "resty.kafka.client"
 
             local broker_list = {
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
@@ -123,7 +130,8 @@ buffer len: 0
                 "halo world",
             }
 
-            local p = producer:new(broker_list, { flush_length = 2})
+            local pd = producer:new(client:new(broker_list))
+            local p = bufferproducer:new(pd, { flush_length = 2})
 
             local resp, err = p:send("test", messages)
             if not resp then
@@ -157,7 +165,9 @@ buffer len: 0
     location /t {
         content_by_lua '
             local cjson = require "cjson"
-            local producer = require "resty.kafka.bufferproducer"
+            local bufferproducer = require "resty.kafka.bufferproducer"
+            local producer = require "resty.kafka.producer"
+            local client = require "resty.kafka.client"
 
             local broker_list = {
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_ERR_PORT },
@@ -171,7 +181,8 @@ buffer len: 0
                 ngx.log(ngx.ERR, "failed to send to kafka, topic: ", topic)
             end
 
-            local p = producer:new(broker_list, { flush_length = 1, error_handle = error_handle })
+            local pd = producer:new(client:new(broker_list))
+            local p = bufferproducer:new(pd, { flush_length = 1, error_handle = error_handle })
 
             local resp, err = p:send("test", messages)
             if not resp then

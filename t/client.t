@@ -44,13 +44,7 @@ __DATA__
                 "halo world",
             }
 
-            local socket_config = {
-                keepalive_timeout = 10000,
-                keepalive_size = 2,
-                socket_timeout = 1000,
-            }
-
-            local cli = client:new(broker_list, nil, socket_config)
+            local cli = client:new(broker_list)
 
             local brokers, partitions = cli:fetch_metadata("test")
             if not brokers then
@@ -86,13 +80,7 @@ GET /t
                 "halo world",
             }
 
-            local socket_config = {
-                keepalive_timeout = 10000,
-                keepalive_size = 2,
-                socket_timeout = 1000,
-            }
-
-            local cli = client:new(broker_list, 100, socket_config)
+            local cli = client:new(broker_list, nil, 100)
             -- XXX just hack for test
             cli.topics = { "test", "test" }
 

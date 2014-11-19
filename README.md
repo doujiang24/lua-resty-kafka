@@ -30,7 +30,9 @@ Synopsis
     server {
         location /test {
             content_by_lua '
+                local client = require "resty.kafka.client"
                 local producer = require "resty.kafka.producer"
+                local bufferproducer = require "resty.kafka.bufferproducer"
 
                 local broker_list = {
                     { host = "127.0.0.1", port = 9092 },
@@ -39,7 +41,8 @@ Synopsis
                     "halo world",
                 }
 
-                local p, err = producer:new(broker_list)
+                local cli = client:new(broker_list)
+                local p = producer:new(cli)
 
                 local offset, err = p:send("test", messages)
                 if not offset then
@@ -48,41 +51,16 @@ Synopsis
                 end
 
                 ngx.say("send success, offset: ", offset)
-            ';
-        }
-    }
-```
 
-bufferproducer
+                local bp = bufferproducer:new(p, { flush_time = 1 })
 
-```lua
-    # you do not need the following line if you are using
-    # the ngx_openresty bundle:
-    lua_package_path "/path/to/lua-resty-kafka/lib/?.lua;;";
-
-    server {
-        location /test {
-            content_by_lua '
-                local cjson = require "cjson"
-                local producer = require "resty.kafka.bufferproducer"
-
-                local broker_list = {
-                    { host = "127.0.0.1", port = 9092 },
-                }
-
-                local messages = {
-                    "halo world",
-                }
-
-                local p = producer:new(broker_list, { flush_time = 1 })
-
-                local resp, err = p:send("test", messages)
-                if not resp then
+                local ok, err = p:send("test", messages)
+                if not ok then
                     ngx.say("send err:", err)
                     return
                 end
 
-                ngx.say("send success, result: ", cjson.encode(resp))
+                ngx.say("send success, result: ", cjson.encode(ok))
             ';
         }
     }
@@ -91,6 +69,67 @@ bufferproducer
 
 Modules
 =======
+
+
+resty.kafka.client
+----------------------
+
+To load this module, just do this
+
+```lua
+    local client = require "resty.kafka.client"
+```
+
+### Methods
+
+#### new
+
+`syntax: p = producer:new(broker_list, socket_config, refresh_interval)`
+
+The `broker_list` is a list of broker, like the below
+
+```json
+[
+    {
+        "host": "127.0.0.1",
+        "port": 9092
+    }
+]
+```
+
+An optional `socket_config` table can be specified. The following options are as follows:
+
+socket config
+
+* `socket_timeout`
+
+    Specifies the network timeout threshold in milliseconds. *SHOULD NOT* be smaller than the `request_timeout`.
+
+* `keepalive_timeout`
+
+    Specifies the maximal idle timeout (in milliseconds) for the keepalive connection.
+
+* `keepalive_size`
+
+    Specifies the maximal number of connections allowed in the connection pool for per Nginx worker.
+
+An optional `refresh_interval` can be specified in milliseconds. Then metadata will not auto refresh if is nil.
+
+
+#### fetch_metadata
+`syntax: brokers, partitions = client:fetch_metadata(topic)`
+
+In case `topic` is a string, return the all brokers and partitions of the `topic`.
+In case of errors, returns `nil` with a string describing the error.
+
+
+#### refresh
+`syntax: brokers, partitions = client:refresh()`
+
+This will refresh the metadata of all topics which have been fetched by `fetch_metadata`.
+In case of success, return all brokers and all partitions of all topics.
+In case of errors, returns `nil` with a string describing the error.
+
 
 resty.kafka.producer
 ----------------------
@@ -105,18 +144,9 @@ To load this module, just do this
 
 #### new
 
-`syntax: p = producer:new(broker_list, opts)`
+`syntax: p = producer:new(client, producer_config)`
 
-The `broker_list` is a list of broker, like the below
-
-```json
-{
-    {
-        "host": "127.0.0.1",
-        "port": 9092
-    }
-}
-```
+`client` is an instance by `client:new`
 
 An optional options table can be specified. The following options are as follows:
 
@@ -138,30 +168,12 @@ producer config
 
     Specifies the `retry.backoff.ms`. Default `100`.
 
-* `metadata_refresh_interval`
-
-    Specifies the `topic.metadata.refresh.interval.ms`. Default none auto refresh.
-
-socket config
-
-* `socket_timeout`
-
-    Specifies the network timeout threshold in milliseconds. *SHOULD NOT* be smaller than the `request_timeout`.
-
-* `keepalive_timeout`
-
-    Specifies the maximal idle timeout (in milliseconds) for the keepalive connection.
-
-* `keepalive_size`
-
-    Specifies the maximal number of connections allowed in the connection pool for per Nginx worker.
-
-Not support compression and self partitioner (use loop inside).
+Not support compression and self partitioner (use loop inside) now.
 
 #### send
 `syntax: ok, err = p:send(topic, messages)`
 
-Sends the `messages` argument to the kafka server.
+Send `messages` to the kafka server.
 
 In case of success, returns the offset of the current broker and partition.
 In case of errors, returns `nil` with a string describing the error.
@@ -178,22 +190,19 @@ This module use buffer inside, message will write to buffered first.
 To load this module, just do this
 
 ```lua
-    local producer = require "resty.kafka.bufferproducer"
+    local bufferproducer = require "resty.kafka.bufferproducer"
 ```
 
 ### Methods
 
 #### new
 
-`syntax: p = bufferproducer:new(broker_list, opts, cluster_name)`
+`syntax: p = bufferproducer:new(producer, buffer_config, cluster_name)`
 
 This will inited to the whole Nginx worker.
-
 And we can init more than one kafka cluster, specified by optional `cluster_name`.
 
 An optional options table can be specified. The following options are as follows:
-
-producer config & socket_config same as producer module
 
 buffer config
 
@@ -222,12 +231,10 @@ buffer config
 
     Specifies the maximal buffer reused num. Default 10000.
 
-buffer producer config
-
 * `error_handle`
 
     Specifies the error handle, handle data when buffer send to kafka error.
-    `syntax: error_handle = function (topic, messages, index) end`,
+    `syntax: error_handle = function (topic, messages, index, err) end`,
     the failed messages is 1 from `index` in the messages.
 
 #### send

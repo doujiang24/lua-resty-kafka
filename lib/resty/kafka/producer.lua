@@ -3,7 +3,6 @@
 
 local response = require "resty.kafka.response"
 local request = require "resty.kafka.request"
-local client = require "resty.kafka.client"
 local broker = require "resty.kafka.broker"
 local Errors = require "resty.kafka.errors"
 
@@ -12,7 +11,6 @@ local setmetatable = setmetatable
 local ngx_sleep = ngx.sleep
 local ngx_log = ngx.log
 local DEBUG = ngx.DEBUG
-local ERR = ngx.ERR
 local debug = ngx.config.debug
 
 
@@ -29,26 +27,18 @@ _M._VERSION = '0.01'
 local mt = { __index = _M }
 
 
-function _M.new(self, broker_list, opts)
-    local opts = opts or {}
-    local request_timeout = opts.request_timeout or 2000
-    local socket_config = {
-        socket_timeout = opts.socket_timeout or (request_timeout + 1000),
-        keepalive_timeout = opts.keepalive_timeout or 600 * 1000, -- 10 min
-        keepalive_size = opts.keepalive_size or 2,
-    }
-
-    local cli = client:new(broker_list, opts.metadata_refresh_interval, socket_config)
+function _M.new(self, client, producer_config)
+    local opts = producer_config or {}
 
     return setmetatable({
-        client = cli,
+        client = client,
         correlation_id = 1,
-        request_timeout = request_timeout,
+        request_timeout = opts.request_timeout or 2000,
         retry_interval = opts.retry_interval or 100,   -- ms
         max_retry = opts.max_retry or 3,
         required_acks = opts.required_acks or 1,
         -- socket config
-        socket_config = socket_config,
+        socket_config = client.socket_config,
     }, mt)
 end
 
@@ -62,13 +52,11 @@ end
 
 
 local function produce_encode(self, topic, messages, index)
-    local timeout = self.request_timeout
-    local id = correlation_id(self)
-
-    local req = request:new(request.ProduceRequest, id, self.client.client_id)
+    local req = request:new(request.ProduceRequest,
+                            correlation_id(self), self.client.client_id)
 
     req:int16(self.required_acks)
-    req:int32(timeout)
+    req:int32(self.request_timeout)
 
     -- XX hard code for topic num: one topic one send
     req:int32(1)

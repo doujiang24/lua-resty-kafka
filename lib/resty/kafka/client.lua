@@ -128,6 +128,7 @@ local function _fetch_metadata(self)
     end
 
     ngx_log(ERR, "refresh metadata failed")
+    return nil, "refresh metadata failed"
 end
 _M.refresh = _fetch_metadata
 
@@ -148,14 +149,19 @@ local function meta_refresh(premature, self, interval)
 end
 
 
-function _M.new(self, broker_list, refresh_interval, socket_config)
+function _M.new(self, broker_list, socket_config, refresh_interval)
+    local opts = socket_config or {}
+    opts.socket_timeout = opts.socket_timeout or 3000
+    opts.keepalive_timeout = opts.keepalive_timeout or 600 * 1000   -- 10 min
+    opts.keepalive_size = opts.keepalive_size or 2
+
     local cli = setmetatable({
         broker_list = broker_list,
         topic_partitions = {},
         broker_nodes = {},
         topics = {},
         client_id = "worker:" .. pid(),
-        socket_config = socket_config,
+        socket_config = opts,
     }, mt)
 
     if refresh_interval then
@@ -167,6 +173,10 @@ end
 
 
 function _M.fetch_metadata(self, topic)
+    if not topic then
+        return self.broker_nodes, self.topic_partitions
+    end
+
     local partitions = self.topic_partitions[topic]
     if partitions then
         if partitions.num and partitions.num > 0 then
@@ -183,7 +193,7 @@ function _M.fetch_metadata(self, topic)
         return self.broker_nodes, partitions
     end
 
-    return nil, "not found topic: " .. topic
+    return nil, "not found topic"
 end
 
 
