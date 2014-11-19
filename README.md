@@ -52,7 +52,7 @@ Synopsis
 
                 ngx.say("send success, offset: ", offset)
 
-                local bp = bufferproducer:new(p, { flush_time = 1 })
+                local bp = bufferproducer:new(p, { flush_length = 1 })
 
                 local ok, err = p:send("test", messages)
                 if not ok then
@@ -103,7 +103,7 @@ socket config
 
 * `socket_timeout`
 
-    Specifies the network timeout threshold in milliseconds. *SHOULD NOT* be smaller than the `request_timeout`.
+    Specifies the network timeout threshold in milliseconds. *SHOULD* lagrer than the `request_timeout`.
 
 * `keepalive_timeout`
 
@@ -119,7 +119,7 @@ An optional `refresh_interval` can be specified in milliseconds. Then metadata w
 #### fetch_metadata
 `syntax: brokers, partitions = client:fetch_metadata(topic)`
 
-In case `topic` is a string, return the all brokers and partitions of the `topic`.
+In case of success, return the all brokers and partitions of the `topic`.
 In case of errors, returns `nil` with a string describing the error.
 
 
