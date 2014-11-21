@@ -35,7 +35,6 @@ __DATA__
 
             local cjson = require "cjson"
             local producer = require "resty.kafka.producer"
-            local client = require "resty.kafka.client"
 
             local broker_list = {
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
@@ -45,7 +44,7 @@ __DATA__
                 "halo world",
             }
 
-            local p = producer:new(client:new(broker_list), { request_timeout = 1 })
+            local p = producer:new(broker_list)
 
             local offset, err = p:send("test", messages)
             if not offset then
@@ -72,7 +71,6 @@ GET /t
 
             local cjson = require "cjson"
             local producer = require "resty.kafka.producer"
-            local client = require "resty.kafka.client"
 
             local broker_list = {
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_ERR_PORT },
@@ -83,7 +81,7 @@ GET /t
                 "halo world",
             }
 
-            local p, err = producer:new(client:new(broker_list))
+            local p, err = producer:new(broker_list)
 
             local offset, err = p:send("test", messages)
             if not offset then
@@ -109,7 +107,6 @@ GET /t
 
             local cjson = require "cjson"
             local producer = require "resty.kafka.producer"
-            local client = require "resty.kafka.client"
 
             local broker_list = {
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
@@ -119,16 +116,16 @@ GET /t
                 "halo world",
             }
 
-            local p = producer:new(client:new(broker_list))
+            local p = producer:new(broker_list)
 
-            local resp, err = p:send("test", messages)
-            if not resp then
+            local offset, err = p:send("test", messages)
+            if not offset then
                 ngx.say("send err:", err)
                 return
             end
 
-            local resp, err = p:send("test1", messages)
-            if not resp then
+            local offset, err = p:send("test1", messages)
+            if not offset then
                 ngx.say("send err:", err)
                 return
             end

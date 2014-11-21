@@ -149,11 +149,13 @@ local function meta_refresh(premature, self, interval)
 end
 
 
-function _M.new(self, broker_list, socket_config, refresh_interval)
-    local opts = socket_config or {}
-    opts.socket_timeout = opts.socket_timeout or 3000
-    opts.keepalive_timeout = opts.keepalive_timeout or 600 * 1000   -- 10 min
-    opts.keepalive_size = opts.keepalive_size or 2
+function _M.new(self, broker_list, client_config)
+    local opts = client_config or {}
+    local socket_config = {
+        socket_timeout = opts.socket_timeout or 3000,
+        keepalive_timeout = opts.keepalive_timeout or 600 * 1000,   -- 10 min
+        keepalive_size = opts.keepalive_size or 2,
+    }
 
     local cli = setmetatable({
         broker_list = broker_list,
@@ -161,11 +163,11 @@ function _M.new(self, broker_list, socket_config, refresh_interval)
         broker_nodes = {},
         topics = {},
         client_id = "worker:" .. pid(),
-        socket_config = opts,
+        socket_config = socket_config,
     }, mt)
 
-    if refresh_interval then
-        meta_refresh(nil, cli, refresh_interval / 1000) -- in ms
+    if opts.refresh_interval then
+        meta_refresh(nil, cli, opts.refresh_interval / 1000) -- in ms
     end
 
     return cli

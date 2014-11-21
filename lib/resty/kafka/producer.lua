@@ -4,6 +4,7 @@
 local response = require "resty.kafka.response"
 local request = require "resty.kafka.request"
 local broker = require "resty.kafka.broker"
+local client = require "resty.kafka.client"
 local Errors = require "resty.kafka.errors"
 
 
@@ -27,18 +28,19 @@ _M._VERSION = '0.01'
 local mt = { __index = _M }
 
 
-function _M.new(self, client, producer_config)
+function _M.new(self, broker_list, client_config, producer_config)
     local opts = producer_config or {}
+    local cli = client:new(broker_list, client_config)
 
     return setmetatable({
-        client = client,
+        client = cli,
         correlation_id = 1,
         request_timeout = opts.request_timeout or 2000,
         retry_interval = opts.retry_interval or 100,   -- ms
         max_retry = opts.max_retry or 3,
         required_acks = opts.required_acks or 1,
         -- socket config
-        socket_config = client.socket_config,
+        socket_config = cli.socket_config,
     }, mt)
 end
 

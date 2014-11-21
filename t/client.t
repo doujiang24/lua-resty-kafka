@@ -80,7 +80,7 @@ GET /t
                 "halo world",
             }
 
-            local cli = client:new(broker_list, nil, 100)
+            local cli = client:new(broker_list, { refresh_interval =  100 })
             -- XXX just hack for test
             cli.topics = { "test", "test" }
 

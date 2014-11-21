@@ -3,6 +3,7 @@
 
 local buffer = require "resty.kafka.buffer"
 local producer = require "resty.kafka.producer"
+local client = require "resty.kafka.client"
 
 
 local setmetatable = setmetatable
@@ -69,6 +70,7 @@ local function _flush(premature, self, force)
         until _flush_lock(self)
     end
 
+    local send_num = 0
     for topic, buffers in pairs(self.buffers) do
         local accept_buffer = buffers.accept_buffer
         local send_buffer = buffers.send_buffer
@@ -83,14 +85,22 @@ local function _flush(premature, self, force)
             -- send data
             if index > 0 then
                 local ok, err = self.producer:send(topic, data, index)
-                if not ok and self.error_handle then
-                    self.error_handle(topic, data, index, err)
+                if ok then
+                    send_num = index
+                else
+                    if self.error_handle then
+                        self.error_handle(topic, data, index, err)
+                    else
+                        ngx_log(ERR, "buffered messages send to kafka err: ", err,
+                                        "; message num: ", index)
+                    end
                 end
             end
         end
     end
 
     _flush_unlock(self)
+    return send_num
 end
 
 
@@ -107,8 +117,7 @@ _timer_flush = function (premature, self, time)
     _flush(nil, self, true)
 
     if is_exiting() then
-        _flush(nil, self, true)
-        return
+        return _flush(nil, self, true)
     end
 
     local ok, err = timer_at(time, _timer_flush, self, time)
@@ -118,30 +127,36 @@ _timer_flush = function (premature, self, time)
 end
 
 
-function _M.new(self, producer, buffer_config, cluster_name)
+function _M.new(self, cluster_name, broker_list, client_config,
+                producer_config, buffer_config)
+
     local cluster_name = cluster_name or "default"
     local bp = cluster_inited[cluster_name]
     if bp then
         return bp
     end
 
+    local p = producer:new(broker_list, client_config, producer_config)
+
     local opts = buffer_config or {}
-    opts.flush_length = opts.flush_length or 100
-    opts.flush_size = opts.flush_size or 10240  -- 10KB
-    opts.max_length = opts.max_length or 10000
-    opts.max_size = opts.max_size or 1048576    -- 1MB
-    opts.max_reuse = opts.max_reuse or 10000
-    opts.flush_time = opts.flush_time or 1000   -- 1s
+    local buffer_opts = {
+        flush_length = opts.flush_length or 100,
+        flush_size = opts.flush_size or 10240,  -- 10KB
+        max_length = opts.max_length or 10000,
+        max_size = opts.max_size or 1048576,    -- 1MB
+        max_reuse = opts.max_reuse or 10000,
+        flush_time = opts.flush_time or 1000,   -- 1s
+    }
 
     local bp = setmetatable({
-                producer = producer,
-                buffer_opts = opts,
+                producer = p,
+                buffer_opts = buffer_opts,
                 buffers = {},
                 error_handle = opts.error_handle,
             }, mt)
 
     cluster_inited[cluster_name] = bp
-    _timer_flush(nil, bp, opts.flush_time / 1000)
+    _timer_flush(nil, bp, buffer_opts.flush_time / 1000)
     return bp
 end
 
@@ -171,7 +186,7 @@ end
 
 
 function _M.flush(self)
-    _flush(nil, self, true)
+    return _flush(nil, self, true)
 end
 
 

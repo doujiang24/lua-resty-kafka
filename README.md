@@ -42,17 +42,22 @@ Synopsis
                 }
 
                 local cli = client:new(broker_list)
-                local p = producer:new(cli)
+                local brokers, partitions = cli:fetch_metadata("test")
+                if not brokers then
+                    ngx.say("fetch_metadata failed, err:", partitions)
+                end
+                ngx.say("brokers: ", cjson.encode(brokers), "; partitions: ", cjson.encode(partitions))
+
+                local p = producer:new(broker_list)
 
                 local offset, err = p:send("test", messages)
                 if not offset then
                     ngx.say("send err:", err)
                     return
                 end
-
                 ngx.say("send success, offset: ", offset)
 
-                local bp = bufferproducer:new(p, { flush_length = 1 })
+                local bp = bufferproducer:new("cluster_1", broker_list, nil, {max_retry = 2}, { flush_length = 1 })
 
                 local ok, err = p:send("test", messages)
                 if not ok then
@@ -84,7 +89,7 @@ To load this module, just do this
 
 #### new
 
-`syntax: p = producer:new(broker_list, socket_config, refresh_interval)`
+`syntax: p = producer:new(broker_list, client_config)`
 
 The `broker_list` is a list of broker, like the below
 
@@ -97,9 +102,9 @@ The `broker_list` is a list of broker, like the below
 ]
 ```
 
-An optional `socket_config` table can be specified. The following options are as follows:
+An optional `client_config` table can be specified. The following options are as follows:
 
-socket config
+client config
 
 * `socket_timeout`
 
@@ -113,7 +118,9 @@ socket config
 
     Specifies the maximal number of connections allowed in the connection pool for per Nginx worker.
 
-An optional `refresh_interval` can be specified in milliseconds. Then metadata will not auto refresh if is nil.
+* `refresh_interval`
+
+    Specifies the time to auto refresh the metadata in milliseconds. Then metadata will not auto refresh if is nil.
 
 
 #### fetch_metadata
@@ -144,9 +151,9 @@ To load this module, just do this
 
 #### new
 
-`syntax: p = producer:new(client, producer_config)`
+`syntax: p = producer:new(broker_list, client_config, producer_config)`
 
-`client` is an instance by `client:new`
+`broker_list` and `client_config` are the same as in `client`
 
 An optional options table can be specified. The following options are as follows:
 
@@ -197,9 +204,9 @@ To load this module, just do this
 
 #### new
 
-`syntax: p = bufferproducer:new(producer, buffer_config, cluster_name)`
+`syntax: p = bufferproducer:new(cluster_name, client_config, producer_config, buffer_config)`
 
-This will inited to the whole Nginx worker.
+This will inited to the whole Nginx worker. So, It is recommended to init in `init_by_lua` or `init_worker_by_lua`.
 And we can init more than one kafka cluster, specified by optional `cluster_name`.
 
 An optional options table can be specified. The following options are as follows:
@@ -239,7 +246,7 @@ buffer config
 
 #### send
 
-`syntax: ok, err = p:send(topic, messages)`
+`syntax: ok, err = bp:send(topic, messages)`
 
 The `messages` will write to the buffer first.
 It will send to the kafka server when the buffer exceed the `flush_size` or `flush_length`,
@@ -247,6 +254,13 @@ or every `flush_time` flush the buffer.
 
 It case of success, returns `true`.
 In case of errors, returns `nil` with a string describing the error (`buffer overflow`).
+
+#### flush
+
+`syntax: ok, err = bp:flush()`
+
+It will force send the messages that buffered to kafka server.
+Return the send success messages num.
 
 
 Installation
