@@ -102,28 +102,20 @@ local function _fetch_metadata(self)
     local broker_list = self.broker_list
     local topics = self.topics
     local sc = self.socket_config
+    local req = metadata_encode(self, topics)
 
     for i = 1, #broker_list do
         local host, port = broker_list[i].host, broker_list[i].port
-        local bk, err = broker:new(host, port, sc.socket_timeout,
-                                    sc.keepalive_timeout, sc.keepalive_size)
-        if not bk then
-            ngx_log(ERR, "broker connect failed, err:", err, host, port)
+        local bk = broker:new(host, port, sc)
+
+        local resp, err = bk:send_receive(req)
+        if not resp then
+            ngx_log(ERR, "broker metadata failed, err:", err, host, port)
         else
-            local req = metadata_encode(self, topics)
+            local brokers, topic_partitions = metadata_decode(resp)
+            self.broker_nodes, self.topic_partitions = brokers, topic_partitions
 
-            local resp, err = bk:send_receive(req)
-            bk:set_keepalive()
-
-            if not resp then
-                ngx_log(ERR, "broker metadata failed, err:", err, host, port)
-
-            else
-                local brokers, topic_partitions = metadata_decode(resp)
-                self.broker_nodes, self.topic_partitions = brokers, topic_partitions
-
-                return brokers, topic_partitions
-            end
+            return brokers, topic_partitions
         end
     end
 

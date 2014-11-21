@@ -107,17 +107,10 @@ local function choose_partition(self, topic)
 
     local partition = partitions.partitions[self.correlation_id % partitions.num + 1]
 
-    local id = partition.id
     local config = brokers[partition.leader]
+    local bk = broker:new(config.host, config.port, self.socket_config)
 
-    local sc = self.socket_config
-    local bk, err = broker:new(config.host, config.port, sc.socket_timeout,
-                                sc.keepalive_timeout, sc.keepalive_size)
-    if not bk then
-        return nil, err
-    end
-
-    return bk, id
+    return bk, partition.id
 end
 
 
@@ -128,10 +121,11 @@ function _M.send(self, topic, messages, index)
 
     while retry <= self.max_retry do
         local bk, partition = choose_partition(self, topic)
-        if bk then
+        if not bk then
+            err = partition
+        else
             req:partition(partition)
             resp, err = bk:send_receive(req)
-            bk:set_keepalive()
             if resp then
                 local r = produce_decode(resp)[topic][partition]
                 if r.errcode == 0 then
@@ -140,8 +134,6 @@ function _M.send(self, topic, messages, index)
                     err = Errors[r.errcode]
                 end
             end
-        else
-            err = partition
         end
 
         if debug then
