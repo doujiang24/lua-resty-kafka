@@ -57,7 +57,7 @@ Synopsis
                 end
                 ngx.say("send success, offset: ", offset)
 
-                local bp = bufferproducer:new("cluster_1", broker_list, nil, {max_retry = 2}, { flush_length = 1 })
+                local bp = bufferproducer:new("cluster_1", broker_list, nil, {max_retry = 2}, { flush_size = 1 })
 
                 local ok, err = p:send("test", messages)
                 if not ok then
@@ -213,10 +213,6 @@ An optional options table can be specified. The following options are as follows
 
 buffer config
 
-* `flush_length`
-
-    Specifies the minimal buffer length(message num) to flush. Default 100.
-
 * `flush_size`
 
     Specifies the minimal buffer size(total byte size) to flush. Default 10240, 10KB.
@@ -225,18 +221,10 @@ buffer config
 
     Specifies the time (in milliseconds) to flush. Default 1000ms.
 
-* `max_length`
-
-    Specifies the maximal buffer length to buffer. Default 10000.
-
 * `max_size`
 
     Specifies the maximal buffer size to buffer. Default 10485760, 1MB.
     Be carefull, *SHOULD* be smaller than the `socket.request.max.bytes` config in kafka server.
-
-* `max_reuse`
-
-    Specifies the maximal buffer reused num. Default 10000.
 
 * `error_handle`
 
@@ -249,7 +237,7 @@ buffer config
 `syntax: ok, err = bp:send(topic, messages)`
 
 The `messages` will write to the buffer first.
-It will send to the kafka server when the buffer exceed the `flush_size` or `flush_length`,
+It will send to the kafka server when the buffer exceed the `flush_size`,
 or every `flush_time` flush the buffer.
 
 It case of success, returns `true`.

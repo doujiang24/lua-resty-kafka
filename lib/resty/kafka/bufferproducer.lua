@@ -140,11 +140,8 @@ function _M.new(self, cluster_name, broker_list, client_config,
 
     local opts = buffer_config or {}
     local buffer_opts = {
-        flush_length = opts.flush_length or 100,
-        flush_size = opts.flush_size or 10240,  -- 10KB
-        max_length = opts.max_length or 10000,
+        flush_size = opts.flush_size or 1024,  -- 1KB
         max_size = opts.max_size or 1048576,    -- 1MB
-        max_reuse = opts.max_reuse or 10000,
         flush_time = opts.flush_time or 1000,   -- 1s
     }
 

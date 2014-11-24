@@ -121,7 +121,7 @@ send num:0
                 "halo world",
             }
 
-            local p = bufferproducer:new(nil, broker_list, nil, nil, { flush_length = 1, flush_time = 1000})
+            local p = bufferproducer:new(nil, broker_list, nil, nil, { flush_size = 1, flush_time = 1000})
 
             local ok, err = p:send("test", messages)
             if not ok then
@@ -166,7 +166,7 @@ send num:0
                 ngx.log(ngx.ERR, "failed to send to kafka, topic: ", topic)
             end
 
-            local p = bufferproducer:new(nil, broker_list, nil, nil, { flush_length = 1, error_handle = error_handle })
+            local p = bufferproducer:new(nil, broker_list, nil, nil, { flush_size = 1, error_handle = error_handle })
 
             local ok, err = p:send("test", messages)
             if not ok then
