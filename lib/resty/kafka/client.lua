@@ -9,6 +9,7 @@ local setmetatable = setmetatable
 local timer_at = ngx.timer.at
 local ngx_log = ngx.log
 local ERR = ngx.ERR
+local INFO = ngx.INFO
 local pid = ngx.worker.pid
 
 
@@ -110,7 +111,7 @@ local function _fetch_metadata(self)
 
         local resp, err = bk:send_receive(req)
         if not resp then
-            ngx_log(ERR, "broker metadata failed, err:", err, host, port)
+            ngx_log(INFO, "broker fetch metadata failed, err:", err, host, port)
         else
             local brokers, topic_partitions = metadata_decode(resp)
             self.broker_nodes, self.topic_partitions = brokers, topic_partitions
