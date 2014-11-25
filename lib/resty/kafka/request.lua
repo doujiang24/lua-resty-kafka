@@ -179,7 +179,7 @@ function _M.message_set(self, messages, index)
 
     req[self.offset] = str_int32(msg_set_size) -- MessageSetSize
 
-    req.offset = off
+    self.offset = off
     self.len = self.len + 4 + msg_set_size
 end
 
@@ -188,7 +188,7 @@ function _M.package(self)
     local req = self._req
     req[1] = str_int32(self.len)
 
-    return concat(req)
+    return req
 end
 
 

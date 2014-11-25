@@ -27,10 +27,8 @@ local mt = { __index = _M }
 
 
 local function metadata_encode(self, topics)
-    local client_id = self.client_id
     local id = 0    -- hard code correlation_id
-
-    local req = request:new(request.MetadataRequest, id, client_id)
+    local req = request:new(request.MetadataRequest, id, self.client_id)
 
     local num = #topics
     req:int32(num)
