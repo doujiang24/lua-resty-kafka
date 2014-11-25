@@ -234,13 +234,13 @@ buffer config
 
 #### send
 
-`syntax: ok, err = bp:send(topic, messages)`
+`syntax: ok, err_or_size = bp:send(topic, messages)`
 
 The `messages` will write to the buffer first.
 It will send to the kafka server when the buffer exceed the `flush_size`,
 or every `flush_time` flush the buffer.
 
-It case of success, returns `true`.
+It case of success, returns `true` with the messages size(byte) add to buffer.
 In case of errors, returns `nil` with a string describing the error (`buffer overflow`).
 
 #### flush

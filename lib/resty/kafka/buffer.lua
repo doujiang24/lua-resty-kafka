@@ -35,20 +35,20 @@ function _M.add(self, messages)
     local mlen = #messages
     local index = self.index
 
-    local size = self.size
+    local size = 0
     local data = self.data
     for i = 1, mlen do
         size = size + #messages[i]
         data[index + i] = messages[i]
     end
 
-    if size > self.max_size then
+    if self.size + size > self.max_size then
         return nil, "buffer size overflow"
     end
 
-    self.size = size
+    self.size = self.size + size
     self.index = index + mlen
-    return true
+    return true, size
 end
 
 

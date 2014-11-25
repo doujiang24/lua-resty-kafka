@@ -178,7 +178,7 @@ function _M.send(self, topic, messages)
         _flush_buffer(self, force)
     end
 
-    return true
+    return true, err
 end
 
 
