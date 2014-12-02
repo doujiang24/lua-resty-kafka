@@ -132,7 +132,8 @@ function _M.bytes(self, str)
 end
 
 
-local function message_package(msg)
+local function message_package(key, msg)
+    local key_len = #key
     local len = #msg
 
     local req = {
@@ -140,14 +141,14 @@ local function message_package(msg)
         str_int8(0),
         -- XX hard code no Compression
         str_int8(0),
-        -- XX hard code key is null
-        str_int32(-1),
+        str_int32(key_len),
+        key,
         str_int32(len),
         msg,
     }
 
     local str = concat(req)
-    return crc32(str), str, len + 14
+    return crc32(str), str, key_len + len + 14
 end
 
 
@@ -160,18 +161,18 @@ end
 
 function _M.message_set(self, messages, index)
     local req = self._req
-    local off = self.offset + 1
+    local off = self.offset
     local msg_set_size = 0
     local index = index or #messages
 
-    for i = 1, index do
-        local crc32, str, msg_len = message_package(messages[i])
+    for i = 1, index, 2 do
+        local crc32, str, msg_len = message_package(messages[i], messages[i + 1])
 
-        req[off] = str_int64(0) -- offset
-        req[off + 1] = str_int32(msg_len) -- include the crc32 length
+        req[off + 1] = str_int64(0) -- offset
+        req[off + 2] = str_int32(msg_len) -- include the crc32 length
 
-        req[off + 2] = str_int32(crc32)
-        req[off + 3] = str
+        req[off + 3] = str_int32(crc32)
+        req[off + 4] = str
 
         off = off + 4
         msg_set_size = msg_set_size + msg_len + 12
@@ -179,7 +180,7 @@ function _M.message_set(self, messages, index)
 
     req[self.offset] = str_int32(msg_set_size) -- MessageSetSize
 
-    self.offset = off
+    self.offset = off + 1
     self.len = self.len + 4 + msg_set_size
 end
 

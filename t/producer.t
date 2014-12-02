@@ -40,13 +40,11 @@ __DATA__
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
             }
 
-            local messages = {
-                "halo world",
-            }
+            local message = "halo world"
 
             local p = producer:new(broker_list)
 
-            local offset, err = p:send("test", messages)
+            local offset, err = p:send("test", nil, message)
             if not offset then
                 ngx.say("send err:", err)
                 return
@@ -77,13 +75,11 @@ GET /t
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
             }
 
-            local messages = {
-                "halo world",
-            }
+            local message = "halo world"
 
             local p, err = producer:new(broker_list)
 
-            local offset, err = p:send("test", messages)
+            local offset, err = p:send("test", nil, message)
             if not offset then
                 ngx.say("send err:", err)
                 return
@@ -99,7 +95,7 @@ GET /t
 --- error_log: fetch_metadata
 
 
-=== TEST 3: two topic send
+=== TEST 3: two send
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
@@ -112,31 +108,113 @@ GET /t
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
             }
 
-            local messages = {
-                "halo world",
-            }
+            local key = "key"
+            local message = "halo world"
 
             local p = producer:new(broker_list)
 
-            local offset, err = p:send("test", messages)
-            if not offset then
-                ngx.say("send err:", err)
+            local offset1, err = p:send("test", key, message)
+            if not offset1 then
+                ngx.say("send1 err:", err)
                 return
             end
 
-            local offset, err = p:send("test1", messages)
-            if not offset then
-                ngx.say("send err:", err)
+            local offset2, err = p:send("test", key, message)
+            if not offset2 then
+                ngx.say("send2 err:", err)
                 return
             end
 
-            -- hack use for test
-            ngx.say(cjson.encode(p.client.topic_partitions["test"]))
+            ngx.say("offset diff: ", offset2 - offset1)
         ';
     }
 --- request
 GET /t
---- response_body_like
-.*partitions.*
+--- response_body
+offset diff: 1
+--- no_error_log
+[error]
+
+
+=== TEST 4: two topic send
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+
+            local cjson = require "cjson"
+            local producer = require "resty.kafka.producer"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local key = "key"
+            local message = "halo world"
+
+            local p = producer:new(broker_list)
+
+            local offset1, err = p:send("test", key, message)
+            if not offset1 then
+                ngx.say("send1 err:", err)
+                return
+            end
+
+            local offset2, err = p:send("test2", key, message)
+            if not offset2 then
+                ngx.say("send2 err:", err)
+                return
+            end
+
+            ngx.say("two topic successed!")
+        ';
+    }
+--- request
+GET /t
+--- response_body
+two topic successed!
+--- no_error_log
+[error]
+
+
+=== TEST 5: batch send
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+
+            local cjson = require "cjson"
+            local producer = require "resty.kafka.producer"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local key = "key"
+            local message = "halo world"
+
+            local p = producer:new(broker_list)
+
+            local partition_id = p:choose_partition("test", key)
+
+            local offset1, err = p:batch_send("test", partition_id, { key, message, key, message })
+            if not offset1 then
+                ngx.say("send2 err:", err)
+                return
+            end
+
+            local offset2, err = p:send("test", key, message)
+            if not offset2 then
+                ngx.say("send1 err:", err)
+                return
+            end
+
+            ngx.say("offset diff: ", offset2 - offset1)
+        ';
+    }
+--- request
+GET /t
+--- response_body
+offset diff: 2
 --- no_error_log
 [error]
