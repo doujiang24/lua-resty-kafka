@@ -71,16 +71,10 @@ local function _flush(premature, self, force)
     end
 
     local send_num = 0
-    for topic, buffers in pairs(self.buffers) do
-        local accept_buffer = buffers.accept_buffer
-        local send_buffer = buffers.send_buffer
-
-        if force or accept_buffer:need_flush() then
-            -- exchange
-            buffers.accept_buffer, buffers.send_buffer = send_buffer, accept_buffer
-
+    for topic, buffer in pairs(self.buffers) do
+        if force or buffer:need_flush() then
             -- get data
-            local data, index = accept_buffer:flush()
+            local data, index = buffer:flush()
 
             -- send data
             if index > 0 then
@@ -159,22 +153,20 @@ end
 
 
 function _M.send(self, topic, messages)
-    if not self.buffers[topic] then
-        self.buffers[topic] = {
-            send_buffer = buffer:new(self.buffer_opts),
-            accept_buffer = buffer:new(self.buffer_opts),
-        }
+    local buffers = self.buffers
+    if not buffers[topic] then
+        buffers[topic] = buffer:new(self.buffer_opts)
     end
 
-    local accept_buffer = self.buffers[topic].accept_buffer
+    local buffer = buffers[topic]
 
-    local ok, err = accept_buffer:add(messages)
+    local ok, err = buffer:add(messages)
     if not ok then
         return nil, err
     end
 
     local force = is_exiting()
-    if force or accept_buffer:need_flush() then
+    if force or buffer:need_flush() then
         _flush_buffer(self, force)
     end
 

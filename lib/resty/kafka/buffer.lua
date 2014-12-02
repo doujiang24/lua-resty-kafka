@@ -19,9 +19,10 @@ _M._VERSION = '0.01'
 
 function _M.new(self, opts)
     local buffer = {
-        data = new_tab(INIT_SIZE, 0),
+        accept_queue = new_tab(INIT_SIZE, 0),
+        send_queue = new_tab(INIT_SIZE, 0),
         flush_size = opts.flush_size,
-        max_size = opts.max_size,   -- should be less than socket.request.max.bytes
+        max_size = opts.max_size,   -- should less than (MaxRequestSize - 10KiB)
                                     -- config in the kafka server, default 100M
         index = 0,
         used = 0,
@@ -36,10 +37,10 @@ function _M.add(self, messages)
     local index = self.index
 
     local size = 0
-    local data = self.data
+    local queue = self.accept_queue
     for i = 1, mlen do
         size = size + #messages[i]
-        data[index + i] = messages[i]
+        queue[index + i] = messages[i]
     end
 
     if self.size + size > self.max_size then
@@ -58,9 +59,7 @@ end
 
 
 function _M.flush(self)
-    local data = self.data
     local index = self.index
-
     if index == 0 then
         return nil, 0
     end
@@ -69,12 +68,17 @@ function _M.flush(self)
     self.index = 0
     self.used = self.used + 1
 
+    -- exchange queue
+    local queue = self.accept_queue
+    self.accept_queue, self.send_queue = self.send_queue, queue
+
     if self.used > MAX_REUSE then
-        self.data = new_tab(INIT_SIZE, 0)
+        self.accept_queue = new_tab(INIT_SIZE, 0)
+        self.send_queue = new_tab(INIT_SIZE, 0)
         self.used = 0
     end
 
-    return data, index
+    return queue, index
 end
 
 
