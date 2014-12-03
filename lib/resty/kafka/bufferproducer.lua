@@ -71,22 +71,24 @@ local function _flush(premature, self, force)
     end
 
     local send_num = 0
-    for topic, buffer in pairs(self.buffers) do
-        if force or buffer:need_flush() then
-            -- get data
-            local data, index = buffer:flush()
+    for topic, buffers in pairs(self.buffers) do
+        for partition_id, buffer in pairs(buffers) do
+            if force or buffer:need_flush() then
+                -- get queue
+                local queue, index = buffer:flush()
 
-            -- send data
-            if index > 0 then
-                local ok, err = self.producer:send(topic, data, index)
-                if ok then
-                    send_num = index
-                else
-                    if self.error_handle then
-                        self.error_handle(topic, data, index, err)
+                -- batch send queue
+                if index > 0 then
+                    local offset, err = self.producer:batch_send(topic, partition_id, queue, index)
+                    if offset then
+                        send_num = send_num + (index / 2)
                     else
-                        ngx_log(ERR, "buffered messages send to kafka err: ", err,
-                                        "; message num: ", index)
+                        if self.error_handle then
+                            self.error_handle(topic, partition_id, queue, index, err)
+                        else
+                            ngx_log(ERR, "buffered messages send to kafka err: ", err,
+                                            "; message num: ", index / 2)
+                        end
                     end
                 end
             end
@@ -152,16 +154,23 @@ function _M.new(self, cluster_name, broker_list, client_config,
 end
 
 
-function _M.send(self, topic, messages)
-    local buffers = self.buffers
-    if not buffers[topic] then
-        buffers[topic] = buffer:new(self.buffer_opts)
+function _M.send(self, topic, key, message)
+    local partition_id, err = self.producer:choose_partition(topic, key)
+    if not partition_id then
+        return nil, err
     end
 
-    local buffer = buffers[topic]
+    local buffers = self.buffers
+    if not buffers[topic] then
+        buffers[topic] = {}
+    end
+    if not buffers[topic][partition_id] then
+        buffers[topic][partition_id] = buffer:new(self.buffer_opts)
+    end
 
-    local ok, err = buffer:add(messages)
-    if not ok then
+    local buffer = buffers[topic][partition_id]
+    local size, err = buffer:add(key, message)
+    if not size then
         return nil, err
     end
 
@@ -170,7 +179,7 @@ function _M.send(self, topic, messages)
         _flush_buffer(self, force)
     end
 
-    return true, err
+    return size
 end
 
 

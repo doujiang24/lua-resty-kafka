@@ -32,24 +32,23 @@ function _M.new(self, opts)
 end
 
 
-function _M.add(self, messages)
-    local mlen = #messages
-    local index = self.index
-
-    local size = 0
-    local queue = self.accept_queue
-    for i = 1, mlen do
-        size = size + #messages[i]
-        queue[index + i] = messages[i]
-    end
+function _M.add(self, key, message)
+    local key = key or ""
+    local size = #key + #message
 
     if self.size + size > self.max_size then
         return nil, "buffer size overflow"
     end
 
+    local index = self.index
+    local queue = self.accept_queue
+
+    queue[index + 1] = key
+    queue[index + 2] = message
+
     self.size = self.size + size
-    self.index = index + mlen
-    return true, size
+    self.index = index + 2
+    return size
 end
 
 

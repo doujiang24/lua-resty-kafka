@@ -146,7 +146,7 @@ function _M.send(self, topic, key, message)
     local messages = { key or "", message }
     local req = produce_encode(self, topic, partition_id, messages)
 
-    local retry, resp, err = 0
+    local retry, resp, err = 1
 
     while retry <= self.max_retry do
         local bk = choose_broker(self, topic, partition_id)
@@ -179,7 +179,7 @@ end
 function _M.batch_send(self, topic, partition_id, messages)
     local req = produce_encode(self, topic, partition_id, messages)
 
-    local retry, resp, bk, err = 0
+    local retry, resp, bk, err = 1
 
     while retry <= self.max_retry do
         bk, err = choose_broker(self, topic, partition_id)

@@ -39,17 +39,18 @@ __DATA__
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
             }
 
-            local messages = {
-                "halo world",
-            }
+            local key = "key"
+            local message = "halo world"
 
             local p = bufferproducer:new("cluster_1", broker_list)
 
-            local ok, err = p:send("test", messages)
-            if not ok then
+            local size, err = p:send("test", key, message)
+            if not size then
                 ngx.say("send err:", err)
                 return
             end
+
+            ngx.say("send size:", size)
 
             local send_num = p:flush()
             ngx.say("send num:", send_num)
@@ -61,6 +62,7 @@ __DATA__
 --- request
 GET /t
 --- response_body
+send size:13
 send num:1
 send num:0
 --- no_error_log
@@ -79,14 +81,13 @@ send num:0
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
             }
 
-            local messages = {
-                "halo world",
-            }
+            local key = "key"
+            local message = "halo world"
 
             local p = bufferproducer:new(nil, broker_list, nil, nil, { flush_time = 1000 })
 
-            local ok, err = p:send("test", messages)
-            if not ok then
+            local size, err = p:send("test", key, message)
+            if not size then
                 ngx.say("send err:", err)
                 return
             end
@@ -117,19 +118,20 @@ send num:0
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
             }
 
-            local messages = {
-                "halo world",
-            }
+            local key = "key"
+            local message = "halo world"
 
             local p = bufferproducer:new(nil, broker_list, nil, nil, { flush_size = 1, flush_time = 1000})
 
-            local ok, err = p:send("test", messages)
-            if not ok then
+            local size, err = p:send("test", nil, message)
+            if not size then
                 ngx.say("send err:", err)
                 return
             end
+            ngx.say("send size:", size)
 
-            local ok, err = p:send("test", messages)
+            local size, err = p:send("test", key, message)
+            ngx.say("send size:", size)
 
             ngx.sleep(0.5)
 
@@ -141,6 +143,8 @@ send num:0
 --- request
 GET /t
 --- response_body
+send size:10
+send size:13
 send num:0
 --- no_error_log
 [error]
@@ -155,31 +159,33 @@ send num:0
             local bufferproducer = require "resty.kafka.bufferproducer"
 
             local broker_list = {
-                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_ERR_PORT },
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
             }
 
-            local messages = {
-                "halo world",
-            }
+            local key = "key"
+            local message = "halo world"
 
-            local error_handle = function (topic, messages, index)
-                ngx.log(ngx.ERR, "failed to send to kafka, topic: ", topic)
+            local error_handle = function (topic, partition_id, queue, index)
+                ngx.log(ngx.ERR, "failed to send to kafka, topic: ", topic, "; partition_id: ", partition_id)
             end
 
-            local p = bufferproducer:new(nil, broker_list, nil, nil, { flush_size = 1, error_handle = error_handle })
+            local p = bufferproducer:new(nil, broker_list, nil, { max_retry = 1 }, { flush_size = 1, error_handle = error_handle })
 
-            local ok, err = p:send("test", messages)
-            if not ok then
+            local size, err = p:send("test", key, message)
+            if not size then
                 ngx.say("send err:", err)
                 return
             end
 
+            -- just hack for debug
+            p.producer.client.broker_nodes = { [0] = { host = "127.0.0.1", port = 8080 } }
+
             ngx.sleep(0.5)
-            ngx.say("nothing to say")
+            ngx.say("send size:", size)
         ';
     }
 --- request
 GET /t
 --- response_body
-nothing to say
---- error_log: failed to send to kafka, topic: test
+send size:13
+--- error_log: failed to send to kafka, topic: test; partition_id: 1
