@@ -30,6 +30,7 @@ Synopsis
     server {
         location /test {
             content_by_lua '
+                local cjson = require "cjson"
                 local client = require "resty.kafka.client"
                 local producer = require "resty.kafka.producer"
                 local bufferproducer = require "resty.kafka.bufferproducer"
@@ -37,9 +38,9 @@ Synopsis
                 local broker_list = {
                     { host = "127.0.0.1", port = 9092 },
                 }
-                local messages = {
-                    "halo world",
-                }
+
+                local key = "key"
+                local message = "halo world"
 
                 local cli = client:new(broker_list)
                 local brokers, partitions = cli:fetch_metadata("test")
@@ -50,7 +51,7 @@ Synopsis
 
                 local p = producer:new(broker_list)
 
-                local offset, err = p:send("test", messages)
+                local offset, err = p:send("test", key, message)
                 if not offset then
                     ngx.say("send err:", err)
                     return
@@ -59,13 +60,13 @@ Synopsis
 
                 local bp = bufferproducer:new("cluster_1", broker_list, nil, {max_retry = 2}, { flush_size = 1 })
 
-                local ok, err = p:send("test", messages)
-                if not ok then
+                local size, err = p:send("test", key, message)
+                if not size then
                     ngx.say("send err:", err)
                     return
                 end
 
-                ngx.say("send success, result: ", cjson.encode(ok))
+                ngx.say("send success, size", size)
             ';
         }
     }
@@ -175,12 +176,28 @@ producer config
 
     Specifies the `retry.backoff.ms`. Default `100`.
 
-Not support compression and self partitioner (use loop inside) now.
+* `partitioner`
+
+    Specifies the partitioner that choose partition from key and partition num.
+    `syntax: partitioner = function (key, partition_num, correlation_id) end`,
+    the correlation_id is an auto increment id in producer.
+
+
+```lua
+local function default_partitioner(key, num, correlation_id)
+    local id = key and crc32(key) or correlation_id
+
+    -- partition_id is continuous and start from 0
+    return id % num
+end
+```
+
+Not support compression now.
 
 #### send
-`syntax: ok, err = p:send(topic, messages)`
+`syntax: ok, err = p:send(topic, key, message)`
 
-Send `messages` to the kafka server.
+Send `key`, `message` to the kafka server.
 
 In case of success, returns the offset of the current broker and partition.
 In case of errors, returns `nil` with a string describing the error.
@@ -229,19 +246,21 @@ buffer config
 * `error_handle`
 
     Specifies the error handle, handle data when buffer send to kafka error.
-    `syntax: error_handle = function (topic, messages, index, err) end`,
-    the failed messages is 1 from `index` in the messages.
+    `syntax: error_handle = function (topic, partition_id, message_queue, index, err) end`,
+    the failed messages in the message_queue is like ```{ key1, msg1, key2, msg2 } ```,
+    `key` in the message_queue is empty string `""` even if orign is `nil`.
+    `index` is the message_queue length, should not use `#message_queue`.
 
 #### send
 
-`syntax: ok, err_or_size = bp:send(topic, messages)`
+`syntax: size, err = bp:send(topic, key, message)`
 
 The `messages` will write to the buffer first.
 It will send to the kafka server when the buffer exceed the `flush_size`,
 or every `flush_time` flush the buffer.
 
-It case of success, returns `true` with the messages size(byte) add to buffer.
-In case of errors, returns `nil` with a string describing the error (`buffer overflow`).
+It case of success, returns the message size(byte) add to buffer (key length + message length).
+In case of errors, returns `nil` with a string describing the error (`buffer overflow` or `not found topic`).
 
 #### flush
 
