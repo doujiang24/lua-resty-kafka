@@ -177,8 +177,8 @@ send num:0
                 return
             end
 
-            -- just hack for debug
-            p.producer.client.broker_nodes = { [0] = { host = "127.0.0.1", port = 8080 } }
+            -- just hack for test
+            p.producer.client.brokers = { [0] = { host = "127.0.0.1", port = 8080 } }
 
             ngx.sleep(0.5)
             ngx.say("send size:", size)

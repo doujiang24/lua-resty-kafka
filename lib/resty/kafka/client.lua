@@ -111,14 +111,14 @@ local function _fetch_metadata(self)
             ngx_log(INFO, "broker fetch metadata failed, err:", err, host, port)
         else
             local brokers, topic_partitions = metadata_decode(resp)
-            self.broker_nodes, self.topic_partitions = brokers, topic_partitions
+            self.brokers, self.topic_partitions = brokers, topic_partitions
 
             return brokers, topic_partitions
         end
     end
 
-    ngx_log(ERR, "refresh metadata failed")
-    return nil, "refresh metadata failed"
+    ngx_log(ERR, "all brokers failed in fetch topic metadata")
+    return nil, "all brokers failed in fetch topic metadata"
 end
 _M.refresh = _fetch_metadata
 
@@ -150,7 +150,7 @@ function _M.new(self, broker_list, client_config)
     local cli = setmetatable({
         broker_list = broker_list,
         topic_partitions = {},
-        broker_nodes = {},
+        brokers = {},
         topics = {},
         client_id = "worker:" .. pid(),
         socket_config = socket_config,
@@ -166,13 +166,13 @@ end
 
 function _M.fetch_metadata(self, topic)
     if not topic then
-        return self.broker_nodes, self.topic_partitions
+        return self.brokers, self.topic_partitions
     end
 
     local partitions = self.topic_partitions[topic]
     if partitions then
         if partitions.num and partitions.num > 0 then
-            return self.broker_nodes, partitions
+            return self.brokers, partitions
         end
     else
         self.topics[#self.topics + 1] = topic
@@ -182,7 +182,7 @@ function _M.fetch_metadata(self, topic)
 
     local partitions = self.topic_partitions[topic]
     if partitions and partitions.num and partitions.num > 0 then
-        return self.broker_nodes, partitions
+        return self.brokers, partitions
     end
 
     return nil, "not found topic"

@@ -180,7 +180,7 @@ producer config
 
     Specifies the partitioner that choose partition from key and partition num.
     `syntax: partitioner = function (key, partition_num, correlation_id) end`,
-    the correlation_id is an auto increment id in producer.
+    the correlation_id is an auto increment id in producer. Default partitioner is:
 
 
 ```lua
@@ -255,7 +255,7 @@ buffer config
 
 `syntax: size, err = bp:send(topic, key, message)`
 
-The `messages` will write to the buffer first.
+The `message` will write to the buffer first.
 It will send to the kafka server when the buffer exceed the `flush_size`,
 or every `flush_time` flush the buffer.
 
@@ -264,7 +264,7 @@ In case of errors, returns `nil` with a string describing the error (`buffer ove
 
 #### flush
 
-`syntax: ok, err = bp:flush()`
+`syntax: num, err = bp:flush()`
 
 It will force send the messages that buffered to kafka server.
 Return the send success messages num.
@@ -327,3 +327,4 @@ See Also
 * the kafka protocol: https://cwiki.apache.org/confluence/display/KAFKA/A+Guide+To+The+Kafka+Protocol
 * the [lua-resty-redis](https://github.com/openresty/lua-resty-redis) library
 * the [lua-resty-logger-socket](https://github.com/cloudflare/lua-resty-logger-socket) library
+* the [Go implementation](https://github.com/Shopify/sarama)

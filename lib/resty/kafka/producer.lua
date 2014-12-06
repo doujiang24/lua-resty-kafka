@@ -51,6 +51,8 @@ function _M.new(self, broker_list, client_config, producer_config)
         partitioner = opts.partitioner or default_partitioner,
         -- socket config
         socket_config = cli.socket_config,
+        -- producer broker instance
+        producer_brokers = {},
     }, mt)
 end
 
@@ -132,8 +134,17 @@ local function choose_broker(self, topic, partition_id)
         return nil, "not found partition"
     end
 
-    local config = brokers[partition.leader]
-    return broker:new(config.host, config.port, self.socket_config)
+    local leader = partition.leader
+    local bk = self.producer_brokers[leader]
+    if bk then
+        return bk
+    end
+
+    local config = brokers[leader]
+    local bk = broker:new(config.host, config.port, self.socket_config)
+    self.producer_brokers[leader] = bk
+
+    return bk
 end
 
 
