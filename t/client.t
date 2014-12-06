@@ -58,7 +58,7 @@ __DATA__
 --- request
 GET /t
 --- response_body_like
-.*partitions.*
+.*replicas.*
 --- no_error_log
 [error]
 
@@ -92,6 +92,6 @@ GET /t
 --- request
 GET /t
 --- response_body_like
-.*partitions.*
+.*replicas.*
 --- no_error_log
 [error]
