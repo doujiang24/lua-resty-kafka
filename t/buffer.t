@@ -189,3 +189,50 @@ GET /t
 --- response_body
 send size:13
 --- error_log: failed to send to kafka, topic: test; partition_id: 1
+
+
+=== TEST 5: buffer reuse
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            local cjson = require "cjson"
+            local bufferproducer = require "resty.kafka.bufferproducer"
+            local producer = require "resty.kafka.producer"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local key = "key"
+            local message = "halo world"
+
+            local p0 = producer:new(broker_list)
+            local offset1, err = p0:send("test", key, message)
+
+            local p = bufferproducer:new(nil, broker_list)
+
+            -- 2 message
+            local size, err = p:send("test", key, message)
+            local size, err = p:send("test", key, message)
+            local send_num = p:flush()
+
+            -- 1 message
+            local size, err = p:send("test", key, message)
+            local send_num = p:flush()
+
+            -- 1 message
+            local size, err = p:send("test", key, message)
+            local send_num = p:flush()
+
+            local offset2, err = p0:send("test", key, message)
+
+            ngx.say("offset diff: ", offset2 - offset1)
+        ';
+    }
+--- request
+GET /t
+--- response_body
+offset diff: 5
+--- no_error_log
+[error]

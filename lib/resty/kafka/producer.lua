@@ -22,7 +22,7 @@ if not ok then
 end
 
 
-local _M = new_tab(0, 3)
+local _M = new_tab(0, 5)
 _M._VERSION = '0.01'
 
 
@@ -63,7 +63,7 @@ local function correlation_id(self)
 end
 
 
-local function produce_encode(self, topic, partition_id, messages)
+local function produce_encode(self, topic, partition_id, messages, index)
     local req = request:new(request.ProduceRequest,
                             correlation_id(self), self.client.client_id)
 
@@ -79,7 +79,7 @@ local function produce_encode(self, topic, partition_id, messages)
     req:int32(partition_id)
 
     -- MessageSetSize and MessageSet
-    req:message_set(messages)
+    req:message_set(messages, index)
 
     return req
 end
@@ -137,47 +137,11 @@ local function choose_broker(self, topic, partition_id)
 end
 
 
-function _M.send(self, topic, key, message)
-    local partition_id, err = choose_partition(self, topic, key)
-    if not partition_id then
-        return nil, err
-    end
-
-    local messages = { key or "", message }
-    local req = produce_encode(self, topic, partition_id, messages)
-
-    local retry, resp, err = 1
-
-    while retry <= self.max_retry do
-        local bk = choose_broker(self, topic, partition_id)
-        resp, err = bk:send_receive(req)
-        if resp then
-            local r = produce_decode(resp)[topic][partition_id]
-            if r.errcode == 0 then
-                return r.offset
-            else
-                err = Errors[r.errcode]
-            end
-        end
-
-        if debug then
-            ngx_log(DEBUG, "retry to send messages to kafka server: ", err)
-        end
-
-        ngx_sleep(self.retry_interval / 1000)
-        self.client:refresh()
-
-        retry = retry + 1
-    end
-
-    return nil, err
-end
-
-
 -- messages is array table {key, msg, key, msg ...}
 -- key can not be nil, can be ""
-function _M.batch_send(self, topic, partition_id, messages)
-    local req = produce_encode(self, topic, partition_id, messages)
+local function batch_send(self, topic, partition_id, messages, index)
+    local req = produce_encode(self, topic, partition_id,
+                                messages, index or #messages)
 
     local retry, resp, bk, err = 1
 
@@ -196,7 +160,8 @@ function _M.batch_send(self, topic, partition_id, messages)
         end
 
         if debug then
-            ngx_log(DEBUG, "retry to send messages to kafka server: ", err)
+            ngx_log(DEBUG, "retry to send messages to kafka err: ", err,
+                    ", topic: ", topic, ", partition_id: ", partition_id)
         end
 
         ngx_sleep(self.retry_interval / 1000)
@@ -206,6 +171,18 @@ function _M.batch_send(self, topic, partition_id, messages)
     end
 
     return nil, err
+end
+_M.batch_send = batch_send
+
+
+function _M.send(self, topic, key, message)
+    local partition_id, err = choose_partition(self, topic, key)
+    if not partition_id then
+        return nil, err
+    end
+
+    local messages = { key or "", message }
+    return batch_send(self, topic, partition_id, messages)
 end
 
 

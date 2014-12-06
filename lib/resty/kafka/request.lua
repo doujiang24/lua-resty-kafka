@@ -18,7 +18,7 @@ if not ok then
 end
 
 
-local _M = new_tab(0, 16)
+local _M = new_tab(0, 15)
 _M._VERSION = '0.01'
 
 
@@ -149,13 +149,6 @@ local function message_package(key, msg)
 
     local str = concat(req)
     return crc32(str), str, key_len + len + 14
-end
-
-
-function _M.partition(self, int)
-    local req = self._req
-
-    req[13] = str_int32(int)
 end
 
 

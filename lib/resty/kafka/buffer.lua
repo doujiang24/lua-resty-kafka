@@ -13,7 +13,7 @@ local MAX_REUSE = 10000
 local INIT_SIZE = 20000
 
 
-local _M = new_tab(0, 15)
+local _M = new_tab(0, 5)
 _M._VERSION = '0.01'
 
 
