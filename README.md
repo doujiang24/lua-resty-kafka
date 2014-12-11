@@ -27,6 +27,11 @@ Synopsis
 ```lua
     lua_package_path "/path/to/lua-resty-kafka/lib/?.lua;;";
 
+    init_by_lua "
+        local bufferproducer = require "resty.kafka.bufferproducer"
+        local bp = bufferproducer:new("cluster_1", broker_list, nil, {max_retry = 2}, { flush_size = 1 })
+    ;
+
     server {
         location /test {
             content_by_lua '
@@ -58,7 +63,7 @@ Synopsis
                 end
                 ngx.say("send success, offset: ", offset)
 
-                local bp = bufferproducer:new("cluster_1", broker_list, nil, {max_retry = 2}, { flush_size = 1 })
+                local bp = bufferproducer:new("cluster_1")
 
                 local size, err = p:send("test", key, message)
                 if not size then
