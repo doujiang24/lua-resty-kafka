@@ -4,13 +4,17 @@
 local response = require "resty.kafka.response"
 local request = require "resty.kafka.request"
 local broker = require "resty.kafka.broker"
+local buffer = require "resty.kafka.buffer"
 local client = require "resty.kafka.client"
 local Errors = require "resty.kafka.errors"
 
 
 local setmetatable = setmetatable
+local timer_at = ngx.timer.at
+local is_exiting = ngx.worker.exiting
 local ngx_sleep = ngx.sleep
 local ngx_log = ngx.log
+local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
 local debug = ngx.config.debug
 local crc32 = ngx.crc32_short
@@ -22,11 +26,14 @@ if not ok then
 end
 
 
-local _M = new_tab(0, 5)
+local _M = new_tab(0, 4)
 _M._VERSION = '0.01'
 
 
 local mt = { __index = _M }
+
+
+local cluster_inited
 
 
 local function default_partitioner(key, num, correlation_id)
@@ -34,26 +41,6 @@ local function default_partitioner(key, num, correlation_id)
 
     -- partition_id is continuous and start from 0
     return id % num
-end
-
-
-function _M.new(self, broker_list, client_config, producer_config)
-    local opts = producer_config or {}
-    local cli = client:new(broker_list, client_config)
-
-    return setmetatable({
-        client = cli,
-        correlation_id = 1,
-        request_timeout = opts.request_timeout or 2000,
-        retry_interval = opts.retry_interval or 100,   -- ms
-        max_retry = opts.max_retry or 3,
-        required_acks = opts.required_acks or 1,
-        partitioner = opts.partitioner or default_partitioner,
-        -- socket config
-        socket_config = cli.socket_config,
-        -- producer broker instance
-        producer_brokers = {},
-    }, mt)
 end
 
 
@@ -65,7 +52,7 @@ local function correlation_id(self)
 end
 
 
-local function produce_encode(self, topic, partition_id, messages, index)
+local function produce_encode(self, topic, partition_id, queue, index)
     local req = request:new(request.ProduceRequest,
                             correlation_id(self), self.client.client_id)
 
@@ -81,7 +68,7 @@ local function produce_encode(self, topic, partition_id, messages, index)
     req:int32(partition_id)
 
     -- MessageSetSize and MessageSet
-    req:message_set(messages, index)
+    req:message_set(queue, index)
 
     return req
 end
@@ -119,7 +106,6 @@ local function choose_partition(self, topic, key)
 
     return self.partitioner(key, partitions.num, self.correlation_id)
 end
-_M.choose_partition = choose_partition
 
 
 local function choose_broker(self, topic, partition_id)
@@ -148,11 +134,10 @@ local function choose_broker(self, topic, partition_id)
 end
 
 
--- messages is array table {key, msg, key, msg ...}
+-- queue is array table {key, msg, key, msg ...}
 -- key can not be nil, can be ""
-local function batch_send(self, topic, partition_id, messages, index)
-    local req = produce_encode(self, topic, partition_id,
-                                messages, index or #messages)
+local function _send(self, topic, partition_id, queue, index)
+    local req = produce_encode(self, topic, partition_id, queue, index)
 
     local retry, resp, bk, err = 1
 
@@ -183,7 +168,164 @@ local function batch_send(self, topic, partition_id, messages, index)
 
     return nil, err
 end
-_M.batch_send = batch_send
+
+
+local function _flush_lock(self)
+    if not self.flushing then
+        if debug then
+            ngx_log(DEBUG, "flush lock accquired")
+        end
+        self.flushing = true
+        return true
+    end
+    return false
+end
+
+
+local function _flush_unlock(self)
+    if debug then
+        ngx_log(DEBUG, "flush lock released")
+    end
+    self.flushing = false
+end
+
+
+local function _flush(premature, self, force)
+    if not _flush_lock(self) then
+        if debug then
+            ngx_log(DEBUG, "previous flush not finished")
+        end
+
+        if not force then
+            return true
+        end
+
+        repeat
+            if debug then
+                ngx_log(DEBUG, "last flush required lock")
+            end
+            ngx_sleep(0.1)
+        until _flush_lock(self)
+    end
+
+    local send_num = 0
+    for topic, buffers in pairs(self.buffers) do
+        for partition_id, bf in pairs(buffers) do
+            if force or bf:need_flush() then
+                -- get queue
+                local queue, index = bf:flush()
+
+                -- batch send queue
+                if index > 0 then
+                    local offset, err = _send(self, topic, partition_id, queue, index)
+                    if offset then
+                        send_num = send_num + (index / 2)
+                    else
+                        if self.error_handle then
+                            self.error_handle(topic, partition_id, queue, index, err)
+                        else
+                            ngx_log(ERR, "buffered messages send to kafka err: ", err,
+                                            "; message num: ", index / 2)
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    _flush_unlock(self)
+    return send_num
+end
+
+
+local function _flush_buffer(self, force)
+    local ok, err = timer_at(0, _flush, self, force)
+    if not ok then
+        ngx_log(ERR, "failed to create timer at _flush_buffer, err: ", err)
+    end
+end
+
+
+local _timer_flush
+_timer_flush = function (premature, self, time)
+    _flush(nil, self, true)
+
+    if is_exiting() then
+        return _flush(nil, self, true)
+    end
+
+    local ok, err = timer_at(time, _timer_flush, self, time)
+    if not ok then
+        ngx_log(ERR, "failed to create timer at _timer_flush, err: ", err)
+    end
+end
+
+
+local function _buffer_add(self, topic, partition_id, key, message)
+    local buffers = self.buffers
+    if not buffers[topic] then
+        buffers[topic] = {}
+    end
+    if not buffers[topic][partition_id] then
+        buffers[topic][partition_id] = buffer:new(self.buffer_opts)
+    end
+
+    local bf = buffers[topic][partition_id]
+    local size, err = bf:add(key, message)
+    if not size then
+        return nil, err
+    end
+
+    local force = is_exiting()
+    if force or bf:need_flush() then
+        _flush_buffer(self, force)
+    end
+
+    return size
+end
+
+
+function _M.new(self, broker_list, producer_config)
+    local opts = producer_config or {}
+    local async = opts.producer_type == "async"
+    if async and cluster_inited then
+        return cluster_inited
+    end
+
+    local buffer_opts = {
+        flush_time = opts.flush_time or 1000,   -- 1s
+        flush_size = opts.flush_size or 1024,  -- 1KB
+        max_size = opts.max_size or 1048576,    -- 1MB
+                -- should less than (MaxRequestSize - 10KiB)
+                -- config in the kafka server, default 100M
+    }
+
+    local cli = client:new(broker_list, producer_config)
+    local p = setmetatable({
+        client = cli,
+        correlation_id = 1,
+        request_timeout = opts.request_timeout or 2000,
+        retry_interval = opts.retry_interval or 100,   -- ms
+        max_retry = opts.max_retry or 3,
+        required_acks = opts.required_acks or 1,
+        partitioner = opts.partitioner or default_partitioner,
+        error_handle = opts.error_handle,
+        buffers = {},
+        async = async,
+        -- buffer config
+        buffer_opts = buffer_opts,
+        -- socket config
+        socket_config = cli.socket_config,
+        -- producer broker instance
+        producer_brokers = {},
+    }, mt)
+
+    if async then
+        cluster_inited = p
+        _timer_flush(nil, p, buffer_opts.flush_time / 1000)
+    end
+    return p
+end
 
 
 function _M.send(self, topic, key, message)
@@ -192,8 +334,17 @@ function _M.send(self, topic, key, message)
         return nil, err
     end
 
-    local messages = { key or "", message }
-    return batch_send(self, topic, partition_id, messages)
+    if self.async then
+        return _buffer_add(self, topic, partition_id, key, message)
+    end
+
+    local queue = { key or "", message }
+    return _send(self, topic, partition_id, queue, 2)
+end
+
+
+function _M.flush(self)
+    return _flush(nil, self, true)
 end
 
 

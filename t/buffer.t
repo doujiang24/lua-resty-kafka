@@ -33,7 +33,7 @@ __DATA__
     location /t {
         content_by_lua '
             local cjson = require "cjson"
-            local bufferproducer = require "resty.kafka.bufferproducer"
+            local producer = require "resty.kafka.producer"
 
             local broker_list = {
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
@@ -42,7 +42,7 @@ __DATA__
             local key = "key"
             local message = "halo world"
 
-            local p = bufferproducer:new("cluster_1", broker_list)
+            local p = producer:new(broker_list, { producer_type = "async" })
 
             local size, err = p:send("test", key, message)
             if not size then
@@ -75,7 +75,7 @@ send num:0
     location /t {
         content_by_lua '
             local cjson = require "cjson"
-            local bufferproducer = require "resty.kafka.bufferproducer"
+            local producer = require "resty.kafka.producer"
 
             local broker_list = {
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
@@ -84,7 +84,7 @@ send num:0
             local key = "key"
             local message = "halo world"
 
-            local p = bufferproducer:new(nil, broker_list, nil, nil, { flush_time = 1000 })
+            local p = producer:new(broker_list, { producer_type = "async", flush_time = 1000 })
 
             local size, err = p:send("test", key, message)
             if not size then
@@ -112,7 +112,7 @@ send num:0
     location /t {
         content_by_lua '
             local cjson = require "cjson"
-            local bufferproducer = require "resty.kafka.bufferproducer"
+            local producer = require "resty.kafka.producer"
 
             local broker_list = {
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
@@ -121,7 +121,7 @@ send num:0
             local key = "key"
             local message = "halo world"
 
-            local p = bufferproducer:new(nil, broker_list, nil, nil, { flush_size = 1, flush_time = 1000})
+            local p = producer:new(broker_list, { producer_type = "async", flush_size = 1, flush_time = 1000})
 
             local size, err = p:send("test", nil, message)
             if not size then
@@ -156,7 +156,7 @@ send num:0
     location /t {
         content_by_lua '
             local cjson = require "cjson"
-            local bufferproducer = require "resty.kafka.bufferproducer"
+            local producer = require "resty.kafka.producer"
 
             local broker_list = {
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
@@ -169,7 +169,7 @@ send num:0
                 ngx.log(ngx.ERR, "failed to send to kafka, topic: ", topic, "; partition_id: ", partition_id)
             end
 
-            local p = bufferproducer:new(nil, broker_list, nil, { max_retry = 1 }, { flush_size = 1, error_handle = error_handle })
+            local p = producer:new(broker_list, { producer_type = "async", max_retry = 1, flush_size = 1, error_handle = error_handle })
 
             local size, err = p:send("test", key, message)
             if not size then
@@ -178,7 +178,7 @@ send num:0
             end
 
             -- just hack for test
-            p.producer.client.brokers = { [0] = { host = "127.0.0.1", port = 8080 } }
+            p.client.brokers = { [0] = { host = "127.0.0.1", port = 8080 } }
 
             ngx.sleep(0.5)
             ngx.say("send size:", size)
@@ -197,7 +197,6 @@ send size:13
     location /t {
         content_by_lua '
             local cjson = require "cjson"
-            local bufferproducer = require "resty.kafka.bufferproducer"
             local producer = require "resty.kafka.producer"
 
             local broker_list = {
@@ -210,7 +209,7 @@ send size:13
             local p0 = producer:new(broker_list)
             local offset1, err = p0:send("test", key, message)
 
-            local p = bufferproducer:new(nil, broker_list)
+            local p = producer:new(broker_list, { producer_type = "async" })
 
             -- 2 message
             local size, err = p:send("test", key, message)

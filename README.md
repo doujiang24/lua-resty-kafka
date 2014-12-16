@@ -27,18 +27,12 @@ Synopsis
 ```lua
     lua_package_path "/path/to/lua-resty-kafka/lib/?.lua;;";
 
-    init_by_lua "
-        local bufferproducer = require "resty.kafka.bufferproducer"
-        local bp = bufferproducer:new("cluster_1", broker_list, nil, {max_retry = 2}, { flush_size = 1 })
-    ;
-
     server {
         location /test {
             content_by_lua '
                 local cjson = require "cjson"
                 local client = require "resty.kafka.client"
                 local producer = require "resty.kafka.producer"
-                local bufferproducer = require "resty.kafka.bufferproducer"
 
                 local broker_list = {
                     { host = "127.0.0.1", port = 9092 },
@@ -47,6 +41,7 @@ Synopsis
                 local key = "key"
                 local message = "halo world"
 
+                -- usually we do not use this library directly
                 local cli = client:new(broker_list)
                 local brokers, partitions = cli:fetch_metadata("test")
                 if not brokers then
@@ -54,6 +49,8 @@ Synopsis
                 end
                 ngx.say("brokers: ", cjson.encode(brokers), "; partitions: ", cjson.encode(partitions))
 
+
+                -- sync producer_type
                 local p = producer:new(broker_list)
 
                 local offset, err = p:send("test", key, message)
@@ -63,7 +60,8 @@ Synopsis
                 end
                 ngx.say("send success, offset: ", offset)
 
-                local bp = bufferproducer:new("cluster_1")
+                -- this is async producer_type and bp will be reused in the whole nginx worker
+                local bp = producer:new(broker_list, { producer_type = "async" })
 
                 local size, err = p:send("test", key, message)
                 if not size then
@@ -157,13 +155,21 @@ To load this module, just do this
 
 #### new
 
-`syntax: p = producer:new(broker_list, client_config, producer_config)`
+`syntax: p = producer:new(broker_list, producer_config)`
 
-`broker_list` and `client_config` are the same as in `client`
+It's recommend to use async producer_type.
+
+`broker_list` is the same as in `client`
 
 An optional options table can be specified. The following options are as follows:
 
-producer config
+`socket_timeout`, `keepalive_timeout`, `keepalive_size`, `refresh_interval` are the same as in `client_config`
+
+producer config, most like in <http://kafka.apache.org/documentation.html#producerconfigs>
+
+* `producer_type`
+
+    Specifies the `producer.type`. "async" or "sync"
 
 * `request_timeout`
 
@@ -177,7 +183,7 @@ producer config
 
     Specifies the `message.send.max.retries`. Default `3`.
 
-* `retry_interval`
+* `retry_backoff`
 
     Specifies the `retry.backoff.ms`. Default `100`.
 
@@ -197,43 +203,7 @@ local function default_partitioner(key, num, correlation_id)
 end
 ```
 
-Not support compression now.
-
-#### send
-`syntax: ok, err = p:send(topic, key, message)`
-
-Send `key`, `message` to the kafka server.
-
-In case of success, returns the offset of the current broker and partition.
-In case of errors, returns `nil` with a string describing the error.
-
-
-Modules
-=======
-
-resty.kafka.bufferproducer
-----------------------
-
-This module use buffer inside, message will write to buffered first.
-
-To load this module, just do this
-
-```lua
-    local bufferproducer = require "resty.kafka.bufferproducer"
-```
-
-### Methods
-
-#### new
-
-`syntax: p = bufferproducer:new(cluster_name, client_config, producer_config, buffer_config)`
-
-This will inited to the whole Nginx worker. So, It is recommended to init in `init_by_lua` or `init_worker_by_lua`.
-And we can init more than one kafka cluster, specified by optional `cluster_name`.
-
-An optional options table can be specified. The following options are as follows:
-
-buffer config
+buffer config ( only work `producer_type` = "async" )
 
 * `flush_size`
 
@@ -256,16 +226,26 @@ buffer config
     `key` in the message_queue is empty string `""` even if orign is `nil`.
     `index` is the message_queue length, should not use `#message_queue`.
 
+Not support compression now.
+
+
 #### send
+`syntax: ok, err = p:send(topic, key, message)`
 
-`syntax: size, err = bp:send(topic, key, message)`
+1. In sync model
 
-The `message` will write to the buffer first.
-It will send to the kafka server when the buffer exceed the `flush_size`,
-or every `flush_time` flush the buffer.
+    In case of success, returns the offset of the current broker and partition.
+    In case of errors, returns `nil` with a string describing the error.
 
-It case of success, returns the message size(byte) add to buffer (key length + message length).
-In case of errors, returns `nil` with a string describing the error (`buffer overflow` or `not found topic`).
+2. In async model
+
+    The `message` will write to the buffer first.
+    It will send to the kafka server when the buffer exceed the `flush_size`,
+    or every `flush_time` flush the buffer.
+
+    It case of success, returns the message size(byte) add to buffer (key length + message length).
+    In case of errors, returns `nil` with a string describing the error (`buffer overflow` or `not found topic`).
+
 
 #### flush
 

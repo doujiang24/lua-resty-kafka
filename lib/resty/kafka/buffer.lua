@@ -22,8 +22,7 @@ function _M.new(self, opts)
         accept_queue = new_tab(INIT_SIZE, 0),
         send_queue = new_tab(INIT_SIZE, 0),
         flush_size = opts.flush_size,
-        max_size = opts.max_size,   -- should less than (MaxRequestSize - 10KiB)
-                                    -- config in the kafka server, default 100M
+        max_size = opts.max_size,
         index = 0,
         used = 0,
         size = 0,
