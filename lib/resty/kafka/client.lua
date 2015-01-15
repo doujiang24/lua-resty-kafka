@@ -61,7 +61,7 @@ local function metadata_decode(resp)
         local topic = resp:string()
 
         local partition_num = resp:int32()
-        local topic_info = new_tab(partition_num, 2)
+        local topic_info = new_tab(partition_num - 1, 3)
 
         topic_info.errcode = tp_errcode
         topic_info.num = partition_num
@@ -87,7 +87,7 @@ local function metadata_decode(resp)
             end
             partition_info.isr = isr
 
-            topic_info[j] = partition_info
+            topic_info[partition_info.id] = partition_info
         end
         topics[topic] = topic_info
     end

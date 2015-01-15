@@ -114,8 +114,7 @@ local function choose_broker(self, topic, partition_id)
         return nil, partitions
     end
 
-    -- lua array table start from 1
-    local partition = partitions[partition_id + 1]
+    local partition = partitions[partition_id]
     if not partition then
         return nil, "not found partition"
     end
