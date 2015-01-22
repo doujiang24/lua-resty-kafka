@@ -10,7 +10,12 @@ local timer_at = ngx.timer.at
 local ngx_log = ngx.log
 local ERR = ngx.ERR
 local INFO = ngx.INFO
+local DEBUG = ngx.DEBUG
+local debug = ngx.config.debug
 local pid = ngx.worker.pid
+local time = ngx.time
+local sleep = ngx.sleep
+local ceil = math.ceil
 
 
 local ok, new_tab = pcall(require, "table.new")
@@ -26,11 +31,74 @@ _M._VERSION = '0.01'
 local mt = { __index = _M }
 
 
-local function metadata_encode(self, topics)
-    local id = 0    -- hard code correlation_id
-    local req = request:new(request.MetadataRequest, id, self.client_id)
+local function _metadata_lock(self, topic)
+    local key = topic and (topic .. time()) or "ALLTOPICS"
 
-    local num = #topics
+    local i = 1
+    while i <= 20 do
+        if topic and self.LAST_METADATA_LOCK == key then
+            if debug then
+                ngx_log(DEBUG, "client metadata lock failed: same lock done, ", key)
+            end
+
+            return
+        end
+
+        if not self.METADATA_LOCK then
+            self.METADATA_LOCK = key
+
+            if debug then
+                ngx_log(DEBUG, "client metadata lock accquired: ", key)
+            end
+            return true
+        end
+
+        if debug then
+            ngx_log(DEBUG, "client metadata lock trying num: ", i, "; key: ", key)
+        end
+
+        sleep(ceil(self.socket_config.socket_timeout / 20) / 1000)
+
+        i = i + 1
+    end
+
+    if debug then
+        ngx_log(DEBUG, "client metadata lock failed, key: ", key)
+    end
+end
+
+
+local function _metadata_unlock(self, updated)
+    if debug then
+        ngx_log(DEBUG, "client metadata lock released")
+    end
+
+    if updated and self.METADATA_LOCK ~= "ALLTOPICS" then
+        self.LAST_METADATA_LOCK = self.METADATA_LOCK
+    end
+
+    self.METADATA_LOCK = nil
+end
+
+
+local function _metadata_cache(self, topic)
+    if not topic then
+        return self.brokers, self.topic_partitions
+    end
+
+    local partitions = self.topic_partitions[topic]
+    if partitions and partitions.num and partitions.num > 0 then
+        return self.brokers, partitions
+    end
+
+    return nil, "not foundd topic"
+end
+
+
+local function metadata_encode(client_id, topics, num)
+    local id = 0    -- hard code correlation_id
+    local req = request:new(request.MetadataRequest, id, client_id)
+
     req:int32(num)
 
     for i = 1, num do
@@ -96,11 +164,29 @@ local function metadata_decode(resp)
 end
 
 
-local function _fetch_metadata(self)
+local function _fetch_metadata(self, new_topic)
+    local topics, num = {}, 0
+    for tp, _p in pairs(self.topic_partitions) do
+        num = num + 1
+        topics[num] = tp
+    end
+
+    if new_topic and not self.topic_partitions[new_topic] then
+        num = num + 1
+        topics[num] = new_topic
+    end
+
+    if num == 0 then
+        return nil, "not topic"
+    end
+
+    if not _metadata_lock(self, new_topic) then
+        return _metadata_cache(self, new_topic)
+    end
+
     local broker_list = self.broker_list
-    local topics = self.topics
     local sc = self.socket_config
-    local req = metadata_encode(self, topics)
+    local req = metadata_encode(self.client_id, topics, num)
 
     for i = 1, #broker_list do
         local host, port = broker_list[i].host, broker_list[i].port
@@ -113,9 +199,12 @@ local function _fetch_metadata(self)
             local brokers, topic_partitions = metadata_decode(resp)
             self.brokers, self.topic_partitions = brokers, topic_partitions
 
+            _metadata_unlock(self, true)
             return brokers, topic_partitions
         end
     end
+
+    _metadata_unlock(self)
 
     ngx_log(ERR, "all brokers failed in fetch topic metadata")
     return nil, "all brokers failed in fetch topic metadata"
@@ -128,9 +217,7 @@ local function meta_refresh(premature, self, interval)
         return
     end
 
-    if #self.topics > 0 then
-        _fetch_metadata(self)
-    end
+    _fetch_metadata(self)
 
     local ok, err = timer_at(interval, meta_refresh, self, interval)
     if not ok then
@@ -151,7 +238,6 @@ function _M.new(self, broker_list, client_config)
         broker_list = broker_list,
         topic_partitions = {},
         brokers = {},
-        topics = {},
         client_id = "worker:" .. pid(),
         socket_config = socket_config,
     }, mt)
@@ -165,27 +251,14 @@ end
 
 
 function _M.fetch_metadata(self, topic)
-    if not topic then
-        return self.brokers, self.topic_partitions
+    local brokers, partitions = _metadata_cache(self, topic)
+    if brokers then
+        return brokers, partitions
     end
 
-    local partitions = self.topic_partitions[topic]
-    if partitions then
-        if partitions.num and partitions.num > 0 then
-            return self.brokers, partitions
-        end
-    else
-        self.topics[#self.topics + 1] = topic
-    end
+    _fetch_metadata(self, topic)
 
-    _fetch_metadata(self)
-
-    local partitions = self.topic_partitions[topic]
-    if partitions and partitions.num and partitions.num > 0 then
-        return self.brokers, partitions
-    end
-
-    return nil, "not found topic"
+    return _metadata_cache(self, topic)
 end
 
 
