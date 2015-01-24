@@ -119,17 +119,12 @@ local function choose_broker(self, topic, partition_id)
         return nil, "not found partition"
     end
 
-    local leader = partition.leader
-    local bk = self.producer_brokers[leader]
-    if bk then
-        return bk
+    local config = brokers[partition.leader]
+    if not config then
+        return nil, "not found broker"
     end
 
-    local config = brokers[leader]
-    local bk = broker:new(config.host, config.port, self.socket_config)
-    self.producer_brokers[leader] = bk
-
-    return bk
+    return broker:new(config.host, config.port, self.socket_config)
 end
 
 
@@ -315,8 +310,6 @@ function _M.new(self, broker_list, producer_config)
         buffer_opts = buffer_opts,
         -- socket config
         socket_config = cli.socket_config,
-        -- producer broker instance
-        producer_brokers = {},
     }, mt)
 
     if async then
