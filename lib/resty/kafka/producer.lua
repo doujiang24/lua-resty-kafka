@@ -141,10 +141,18 @@ local function _send(self, topic, partition_id, queue, index)
             resp, err = bk:send_receive(req)
             if resp then
                 local r = produce_decode(resp)[topic][partition_id]
-                if r.errcode == 0 then
+                local errcode = r.errcode
+                if errcode == 0 then
                     return r.offset
                 else
-                    err = Errors[r.errcode]
+                    err = Errors[errcode]
+                end
+
+                -- XXX: treat as send success
+                if errcode ~= 3 and errcode ~= 5 and errcode ~= 6 then
+                    ngx_log(ERR, "CAN NOT RETRY ERROR happened: ", err, "; when send to topic: ", topic,
+                                "; partition_id: ", partition_id, "; message length: ", index / 2)
+                    return 0, err
                 end
             end
         end
