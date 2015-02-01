@@ -34,12 +34,12 @@ end
 function _M.send_receive(self, request)
     local sock, err = tcp()
     if not sock then
-        return nil, err
+        return nil, err, true
     end
 
     local ok, err = sock:connect(self.host, self.port)
     if not ok then
-        return nil, err
+        return nil, err, true
     end
 
     sock:settimeout(self.config.socket_timeout)
@@ -69,7 +69,7 @@ function _M.send_receive(self, request)
 
     sock:setkeepalive(self.config.keepalive_timeout, self.config.keepalive_size)
 
-    return response:new(data)
+    return response:new(data), nil, true
 end
 
 

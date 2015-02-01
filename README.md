@@ -221,10 +221,12 @@ buffer config ( only work `producer_type` = "async" )
 * `error_handle`
 
     Specifies the error handle, handle data when buffer send to kafka error.
-    `syntax: error_handle = function (topic, partition_id, message_queue, index, err) end`,
+    `syntax: error_handle = function (topic, partition_id, message_queue, index, err, retryable) end`,
     the failed messages in the message_queue is like ```{ key1, msg1, key2, msg2 } ```,
     `key` in the message_queue is empty string `""` even if orign is `nil`.
     `index` is the message_queue length, should not use `#message_queue`.
+    when `retryable` is `true` that means kafka server surely not committed this messages, you can safely retry to send;
+    and else means maybe, recommend to log to somewhere.
 
 Not support compression now.
 

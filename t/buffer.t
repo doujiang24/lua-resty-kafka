@@ -165,8 +165,8 @@ send num:0
             local key = "key"
             local message = "halo world"
 
-            local error_handle = function (topic, partition_id, queue, index)
-                ngx.log(ngx.ERR, "failed to send to kafka, topic: ", topic, "; partition_id: ", partition_id)
+            local error_handle = function (topic, partition_id, queue, index, err, retryable)
+                ngx.log(ngx.ERR, "failed to send to kafka, topic: ", topic, "; partition_id: ", partition_id, "; retryable: ", retryable)
             end
 
             local p = producer:new(broker_list, { producer_type = "async", max_retry = 1, flush_size = 1, error_handle = error_handle })
@@ -178,7 +178,7 @@ send num:0
             end
 
             -- just hack for test
-            p.client.brokers = { [0] = { host = "127.0.0.1", port = 8080 } }
+            p.client.brokers = { [0] = { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_ERR_PORT } }
 
             ngx.sleep(0.5)
             ngx.say("send size:", size)
@@ -188,7 +188,7 @@ send num:0
 GET /t
 --- response_body
 send size:13
---- error_log: failed to send to kafka, topic: test; partition_id: 1
+--- error_log: failed to send to kafka, topic: test; partition_id: 1; retryable: true
 
 
 === TEST 5: buffer reuse

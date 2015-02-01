@@ -15,6 +15,7 @@ local is_exiting = ngx.worker.exiting
 local ngx_sleep = ngx.sleep
 local ngx_log = ngx.log
 local ERR = ngx.ERR
+local INFO = ngx.INFO
 local DEBUG = ngx.DEBUG
 local debug = ngx.config.debug
 local crc32 = ngx.crc32_short
@@ -133,12 +134,12 @@ end
 local function _send(self, topic, partition_id, queue, index)
     local req = produce_encode(self, topic, partition_id, queue, index)
 
-    local retry, resp, bk, err = 1
+    local retry, retryable, resp, bk, err = 1, true
 
-    while retry <= self.max_retry do
+    while retryable and retry <= self.max_retry do
         bk, err = choose_broker(self, topic, partition_id)
         if bk then
-            resp, err = bk:send_receive(req)
+            resp, err, retryable = bk:send_receive(req)
             if resp then
                 local r = produce_decode(resp)[topic][partition_id]
                 local errcode = r.errcode
@@ -146,29 +147,25 @@ local function _send(self, topic, partition_id, queue, index)
                     return r.offset
                 else
                     err = Errors[errcode]
-                end
 
-                -- XXX: treat as send success
-                if errcode ~= 3 and errcode ~= 5 and errcode ~= 6 then
-                    ngx_log(ERR, "CAN NOT RETRY ERROR happened: ", err, "; when send to topic: ", topic,
-                                "; partition_id: ", partition_id, "; message length: ", index / 2)
-                    return 0, err
+                    -- XX: only 3, 5, 6 can retry
+                    if errcode ~= 3 and errcode ~= 5 and errcode ~= 6 then
+                        retryable = nil
+                    end
                 end
             end
         end
 
-        if debug then
-            ngx_log(DEBUG, "retry to send messages to kafka err: ", err,
-                    ", topic: ", topic, ", partition_id: ", partition_id)
-        end
+        ngx_log(INFO, "retry to send messages to kafka err: ", err, ", retryable: ", retryable,
+                ", topic: ", topic, ", partition_id: ", partition_id, ", length: ", index / 2)
 
-        ngx_sleep(self.retry_interval / 1000)
+        ngx_sleep(self.retry_interval / 1000)   -- ms to s
         self.client:refresh()
 
         retry = retry + 1
     end
 
-    return nil, err
+    return nil, err, retryable
 end
 
 
@@ -219,15 +216,16 @@ local function _flush(premature, self, force)
 
                 -- batch send queue
                 if index > 0 then
-                    local offset, err = _send(self, topic, partition_id, queue, index)
+                    local offset, err, retryable = _send(self, topic, partition_id, queue, index)
                     if offset then
                         send_num = send_num + (index / 2)
                     else
                         if self.error_handle then
-                            self.error_handle(topic, partition_id, queue, index, err)
+                            self.error_handle(topic, partition_id, queue, index, err, retryable)
                         else
                             ngx_log(ERR, "buffered messages send to kafka err: ", err,
-                                            "; message num: ", index / 2)
+                                        ", retryable: ", retryable, ", topic: ", topic,
+                                        ", partition_id: ", partition_id, ", length: ", index / 2)
                         end
                     end
                 end
