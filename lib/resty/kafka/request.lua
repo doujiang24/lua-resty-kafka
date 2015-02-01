@@ -53,15 +53,16 @@ local function str_int32(int)
 end
 
 
+-- XX int can be cdata: LL or lua number
 local function str_int64(int)
-    return char(band(rshift(int, 56), 0xff),
-                band(rshift(int, 48), 0xff),
-                band(rshift(int, 40), 0xff),
-                band(rshift(int, 32), 0xff),
-                band(rshift(int, 24), 0xff),
-                band(rshift(int, 16), 0xff),
-                band(rshift(int, 8), 0xff),
-                band(int, 0xff))
+    return char(tonumber(band(rshift(int, 56), 0xff)),
+                tonumber(band(rshift(int, 48), 0xff)),
+                tonumber(band(rshift(int, 40), 0xff)),
+                tonumber(band(rshift(int, 32), 0xff)),
+                tonumber(band(rshift(int, 24), 0xff)),
+                tonumber(band(rshift(int, 16), 0xff)),
+                tonumber(band(rshift(int, 8), 0xff)),
+                tonumber(band(int, 0xff)))
 end
 
 
@@ -103,6 +104,17 @@ function _M.int32(self, int)
 
     self.offset = offset + 1
     self.len = self.len + 4
+end
+
+
+function _M.int64(self, int)
+    local req = self._req
+    local offset = self.offset
+
+    req[offset] = str_int64(int)
+
+    self.offset = offset + 1
+    self.len = self.len + 8
 end
 
 

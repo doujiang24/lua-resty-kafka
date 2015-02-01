@@ -1,4 +1,4 @@
-# vim:set ft= ts=4 sw=4 et:
+# vim:set ts=4 sw=4 et:
 
 use Test::Nginx::Socket::Lua;
 use Cwd qw(cwd);
@@ -226,7 +226,7 @@ send size:13
 
             local offset2, err = p0:send("test", key, message)
 
-            ngx.say("offset diff: ", offset2 - offset1)
+            ngx.say("offset diff: ", tonumber(offset2 - offset1))
         ';
     }
 --- request

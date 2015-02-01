@@ -39,8 +39,11 @@ function _M.int16(self)
     local offset = self.offset
     self.offset = offset + 2
 
-    return bor(lshift(byte(str, offset), 8),
-               byte(str, offset + 1))
+    local high = byte(str, offset)
+    -- high padded
+    return bor((high >= 128) and 0xffff0000 or 0,
+            lshift(high, 8),
+            byte(str, offset + 1))
 end
 
 
@@ -63,19 +66,21 @@ function _M.int32(self)
 end
 
 
+-- XX return cdata: LL
 function _M.int64(self)
     local str = self.str
     local offset = self.offset
     self.offset = offset + 4
 
-    return bor(lshift(byte(str, offset), 56),
-               lshift(byte(str, offset + 1), 48),
-               lshift(byte(str, offset + 2), 40),
-               lshift(byte(str, offset + 3), 32),
-               lshift(byte(str, offset + 4), 24),
-               lshift(byte(str, offset + 5), 16),
-               lshift(byte(str, offset + 6), 8),
-               byte(str, offset + 7))
+    return 4294967296LL *
+            bor(lshift(byte(str, offset), 56),
+                lshift(byte(str, offset + 1), 48),
+                lshift(byte(str, offset + 2), 40),
+                lshift(byte(str, offset + 3), 32))
+            + 16777216LL * byte(str, offset + 4)
+            + bor(lshift(byte(str, offset + 5), 16),
+                lshift(byte(str, offset + 6), 8),
+                byte(str, offset + 7))
 end
 
 

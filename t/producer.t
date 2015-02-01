@@ -1,4 +1,4 @@
-# vim:set ft= ts=4 sw=4 et:
+# vim:set ts=4 sw=4 et:
 
 use Test::Nginx::Socket::Lua;
 use Cwd qw(cwd);
@@ -50,7 +50,7 @@ __DATA__
                 return
             end
 
-            ngx.say("offset: ", offset)
+            ngx.say("offset: ", tostring(offset))
         ';
     }
 --- request
@@ -85,7 +85,7 @@ GET /t
                 return
             end
 
-            ngx.say("offset: ", offset)
+            ngx.say("offset: ", tostring(offset))
         ';
     }
 --- request
@@ -125,7 +125,7 @@ GET /t
                 return
             end
 
-            ngx.say("offset diff: ", offset2 - offset1)
+            ngx.say("offset diff: ", tonumber(offset2 - offset1))
         ';
     }
 --- request

@@ -58,7 +58,7 @@ Synopsis
                     ngx.say("send err:", err)
                     return
                 end
-                ngx.say("send success, offset: ", offset)
+                ngx.say("send success, offset: ", tostring(offset))
 
                 -- this is async producer_type and bp will be reused in the whole nginx worker
                 local bp = producer:new(broker_list, { producer_type = "async" })
@@ -234,7 +234,7 @@ Not support compression now.
 
 1. In sync model
 
-    In case of success, returns the offset of the current broker and partition.
+    In case of success, returns the offset (** cdata: LL **) of the current broker and partition.
     In case of errors, returns `nil` with a string describing the error.
 
 2. In async model
