@@ -42,29 +42,38 @@ __DATA__
             local key = "key"
             local message = "halo world"
 
-            local p = producer:new(broker_list, { producer_type = "async" })
+            local p = producer:new(broker_list, { producer_type = "async", flush_time = 10000 })
+            ngx.sleep(0.1) -- will have an immediately flush by timer_flush
 
-            local size, err = p:send("test", key, message)
-            if not size then
+            local ok, err = p:send("test", key, message)
+            if not ok then
                 ngx.say("send err:", err)
                 return
             end
+            ngx.say("send ok:", ok)
 
-            ngx.say("send size:", size)
+            p:flush()
+            local offset0 = p:offset()
 
-            local send_num = p:flush()
-            ngx.say("send num:", send_num)
+            local ok, err = p:send("test", key, message)
+            if not ok then
+                ngx.say("send err:", err)
+                return
+            end
+            ngx.say("send ok:", ok)
 
-            local send_num = p:flush()
-            ngx.say("send num:", send_num)
+            p:flush()
+            local offset1 = p:offset()
+
+            ngx.say("send num:", tonumber(offset1 - offset0))
         ';
     }
 --- request
 GET /t
 --- response_body
-send size:13
+send ok:true
+send ok:true
 send num:1
-send num:0
 --- no_error_log
 [error]
 
@@ -85,6 +94,7 @@ send num:0
             local message = "halo world"
 
             local p = producer:new(broker_list, { producer_type = "async", flush_time = 1000 })
+            ngx.sleep(0.1) -- will have an immediately flush by timer_flush
 
             local size, err = p:send("test", key, message)
             if not size then
@@ -94,14 +104,14 @@ send num:0
 
             ngx.sleep(1.1)
 
-            local send_num = p:flush()
-            ngx.say("send num:", send_num)
+            local offset = p:offset()
+            ngx.say("offset bigger than 0: ", tonumber(offset) > 0)
         ';
     }
 --- request
 GET /t
 --- response_body
-send num:0
+offset bigger than 0: true
 --- no_error_log
 [error]
 
@@ -121,30 +131,29 @@ send num:0
             local key = "key"
             local message = "halo world"
 
-            local p = producer:new(broker_list, { producer_type = "async", flush_size = 1, flush_time = 1000})
+            local p = producer:new(broker_list, { producer_type = "async", batch_num = 1, flush_time = 10000})
+            ngx.sleep(0.1) -- will have an immediately flush by timer_flush
 
-            local size, err = p:send("test", nil, message)
-            if not size then
+            local ok, err = p:send("test", nil, message)
+            if not ok then
                 ngx.say("send err:", err)
                 return
             end
-            ngx.say("send size:", size)
+            ngx.say("send ok:", ok)
 
-            local size, err = p:send("test", key, message)
-            ngx.say("send size:", size)
+            ngx.sleep(1)
 
-            ngx.sleep(0.5)
-
+            local offset0 = p:offset()
             local send_num = p:flush()
-            ngx.say("send num:", send_num)
+            local offset1 = p:offset()
+            ngx.say("send num:", tonumber(offset1 - offset0))
 
         ';
     }
 --- request
 GET /t
 --- response_body
-send size:10
-send size:13
+send ok:true
 send num:0
 --- no_error_log
 [error]
@@ -159,7 +168,7 @@ send num:0
             local producer = require "resty.kafka.producer"
 
             local broker_list = {
-                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_ERR_PORT },
             }
 
             local key = "key"
@@ -169,29 +178,28 @@ send num:0
                 ngx.log(ngx.ERR, "failed to send to kafka, topic: ", topic, "; partition_id: ", partition_id, "; retryable: ", retryable)
             end
 
-            local p = producer:new(broker_list, { producer_type = "async", max_retry = 1, flush_size = 1, error_handle = error_handle })
+            local p = producer:new(broker_list, { producer_type = "async", max_retry = 1, batch_num = 1, error_handle = error_handle })
 
-            local size, err = p:send("test", key, message)
-            if not size then
+            local ok, err = p:send("test", key, message)
+            if not ok then
                 ngx.say("send err:", err)
                 return
             end
 
-            -- just hack for test
-            p.client.brokers = { [0] = { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_ERR_PORT } }
+            ngx.say("send ok:", ok)
 
-            ngx.sleep(0.5)
-            ngx.say("send size:", size)
+            p:flush()
+
         ';
     }
 --- request
 GET /t
 --- response_body
-send size:13
---- error_log: failed to send to kafka, topic: test; partition_id: 1; retryable: true
+send ok:true
+--- error_log: failed to send to kafka, topic: test; partition_id: -1; retryable: true
 
 
-=== TEST 5: buffer reuse
+=== TEST 5: wrong in error handle
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
@@ -200,38 +208,70 @@ send size:13
             local producer = require "resty.kafka.producer"
 
             local broker_list = {
-                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_ERR_PORT },
             }
 
             local key = "key"
             local message = "halo world"
 
-            local p0 = producer:new(broker_list)
-            local offset1, err = p0:send("test", key, message)
+            local error_handle = function (topic, partition_id, queue, index, err, retryable)
+                local num = topic + 1
+                return true
+            end
+            ngx.log(ngx.ERR, tostring(error_handle))
 
-            local p = producer:new(broker_list, { producer_type = "async" })
+            local p = producer:new(broker_list, { producer_type = "async", max_retry = 1, batch_num = 1, error_handle = error_handle })
 
-            -- 2 message
-            local size, err = p:send("test", key, message)
-            local size, err = p:send("test", key, message)
-            local send_num = p:flush()
+            local ok, err = p:send("test", key, message)
+            if not ok then
+                ngx.say("send err:", err)
+                return
+            end
 
-            -- 1 message
-            local size, err = p:send("test", key, message)
-            local send_num = p:flush()
+            ngx.say("send ok:", ok)
 
-            -- 1 message
-            local size, err = p:send("test", key, message)
-            local send_num = p:flush()
+            p:flush()
 
-            local offset2, err = p0:send("test", key, message)
-
-            ngx.say("offset diff: ", tonumber(offset2 - offset1))
         ';
     }
 --- request
 GET /t
 --- response_body
-offset diff: 5
+send ok:true
+--- error_log: failed to callback error_handle
+
+
+=== TEST 6: work in log phase
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            ngx.req.read_body();
+            local body = ngx.req.get_body_data();
+            ngx.say(body);
+        ';
+
+        log_by_lua '
+            local cjson = require "cjson"
+            local producer = require "resty.kafka.producer"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT},
+            }
+
+            local key = "key"
+            local message = ngx.var.request_body
+
+            local p = producer:new(broker_list, { producer_type = "async", batch_num = 1, flush_time = 10000})
+            -- 1 message
+            local size, err = p:send("test", key, message)
+
+        ';
+    }
+--- request
+POST /t
+Hello world
+--- response_body
+Hello world
 --- no_error_log
 [error]

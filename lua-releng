@@ -6,7 +6,7 @@ use warnings;
 sub file_contains ($$);
 
 my $version;
-for my $file (map glob, qw{ *.lua lib/*.lua lib/*/*.lua lib/*/*/*.lua }) {
+for my $file (map glob, qw{ lib/*.lua lib/*/*.lua lib/*/*/*.lua }) {
     # Check the sanity of each .lua file
     open my $in, $file or
         die "ERROR: Can't open $file for reading: $!\n";
@@ -40,7 +40,7 @@ for my $file (map glob, qw{ *.lua lib/*.lua lib/*/*.lua lib/*/*/*.lua }) {
     close $in;
 
     print "Checking use of Lua global variables in file $file ...\n";
-    system("luac -p -l $file | grep ETGLOBAL | grep -vE 'require|type|tostring|error|ngx|ndk|jit|setmetatable|getmetatable|string|table|io|os|print|tonumber|math|pcall|xpcall|unpack|pairs|ipairs|assert|module|package|coroutine|[gs]etfenv|next|select|rawset|rawget|debug'");
+    system("luac -p -l $file | grep ETGLOBAL | grep -vE 'require'");
     #file_contains($file, "attempt to write to undeclared variable");
     system("grep -H -n -E --color '.{120}' $file");
 }

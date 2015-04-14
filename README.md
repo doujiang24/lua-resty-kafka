@@ -58,18 +58,18 @@ Synopsis
                     ngx.say("send err:", err)
                     return
                 end
-                ngx.say("send success, offset: ", tostring(offset))
+                ngx.say("send success, offset: ", tonumber(offset))
 
                 -- this is async producer_type and bp will be reused in the whole nginx worker
                 local bp = producer:new(broker_list, { producer_type = "async" })
 
-                local size, err = p:send("test", key, message)
-                if not size then
+                local ok, err = p:send("test", key, message)
+                if not ok then
                     ngx.say("send err:", err)
                     return
                 end
 
-                ngx.say("send success, size", size)
+                ngx.say("send success, ok:", ok)
             ';
         }
     }
@@ -205,18 +205,22 @@ end
 
 buffer config ( only work `producer_type` = "async" )
 
-* `flush_size`
-
-    Specifies the minimal buffer size(total byte size) to flush. Default 10240, 10KB.
-
 * `flush_time`
 
-    Specifies the time (in milliseconds) to flush. Default 1000ms.
+    Specifies the `queue.buffering.max.ms`. Default `1000`.
 
-* `max_size`
+* `batch_num`
 
-    Specifies the maximal buffer size to buffer. Default 10485760, 1MB.
-    Be carefull, *SHOULD* be smaller than the `socket.request.max.bytes` config in kafka server.
+    Specifies the `batch.num.messages`. Default `200`.
+
+* `batch_size`
+
+    Specifies the `send.buffer.bytes`. Default `1M`(may reach 2M).
+    Be carefull, *SHOULD* be smaller than the `socket.request.max.bytes / 2 - 10k` config in kafka server.
+
+* `max_buffering`
+
+    Specifies the `queue.buffering.max.messages`. Default `50,000`.
 
 * `error_handle`
 
@@ -242,19 +246,26 @@ Not support compression now.
 2. In async model
 
     The `message` will write to the buffer first.
-    It will send to the kafka server when the buffer exceed the `flush_size`,
+    It will send to the kafka server when the buffer exceed the `batch_num`,
     or every `flush_time` flush the buffer.
 
-    It case of success, returns the message size(byte) add to buffer (key length + message length).
-    In case of errors, returns `nil` with a string describing the error (`buffer overflow` or `not found topic`).
+    It case of success, returns `true`.
+    In case of errors, returns `nil` with a string describing the error (`buffer overflow`).
+
+
+#### offset
+
+`syntax: sum, details = bp:offset()`
+
+    Return the sum of all the topic-partition offset (return by the ProduceRequest api);
+    and the details of each topic-partition
 
 
 #### flush
 
-`syntax: num, err = bp:flush()`
+`syntax: ok = bp:flush()`
 
-It will force send the messages that buffered to kafka server.
-Return the send success messages num.
+Always return `true`.
 
 
 Installation
@@ -314,4 +325,4 @@ See Also
 * the kafka protocol: https://cwiki.apache.org/confluence/display/KAFKA/A+Guide+To+The+Kafka+Protocol
 * the [lua-resty-redis](https://github.com/openresty/lua-resty-redis) library
 * the [lua-resty-logger-socket](https://github.com/cloudflare/lua-resty-logger-socket) library
-* the [Go implementation](https://github.com/Shopify/sarama)
+* the [sarama](https://github.com/Shopify/sarama)

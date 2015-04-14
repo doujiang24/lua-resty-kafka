@@ -16,6 +16,7 @@ local pid = ngx.worker.pid
 local time = ngx.time
 local sleep = ngx.sleep
 local ceil = math.ceil
+local pairs = pairs
 
 
 local ok, new_tab = pcall(require, "table.new")
@@ -24,61 +25,8 @@ if not ok then
 end
 
 
-local _M = new_tab(0, 4)
-_M._VERSION = '0.01'
-
-
+local _M = { _VERSION = "0.01" }
 local mt = { __index = _M }
-
-
-local function _metadata_lock(self, topic)
-    local key = topic and (topic .. time()) or "ALLTOPICS"
-
-    local i = 1
-    while i <= 20 do
-        if topic and self.LAST_METADATA_LOCK == key then
-            if debug then
-                ngx_log(DEBUG, "client metadata lock failed: same lock done, ", key)
-            end
-
-            return
-        end
-
-        if not self.METADATA_LOCK then
-            self.METADATA_LOCK = key
-
-            if debug then
-                ngx_log(DEBUG, "client metadata lock accquired: ", key)
-            end
-            return true
-        end
-
-        if debug then
-            ngx_log(DEBUG, "client metadata lock trying num: ", i, "; key: ", key)
-        end
-
-        sleep(ceil(self.socket_config.socket_timeout / 20) / 1000)
-
-        i = i + 1
-    end
-
-    if debug then
-        ngx_log(DEBUG, "client metadata lock failed, key: ", key)
-    end
-end
-
-
-local function _metadata_unlock(self, updated)
-    if debug then
-        ngx_log(DEBUG, "client metadata lock released")
-    end
-
-    if updated and self.METADATA_LOCK ~= "ALLTOPICS" then
-        self.LAST_METADATA_LOCK = self.METADATA_LOCK
-    end
-
-    self.METADATA_LOCK = nil
-end
 
 
 local function _metadata_cache(self, topic)
@@ -180,10 +128,6 @@ local function _fetch_metadata(self, new_topic)
         return nil, "not topic"
     end
 
-    if not _metadata_lock(self, new_topic) then
-        return _metadata_cache(self, new_topic)
-    end
-
     local broker_list = self.broker_list
     local sc = self.socket_config
     local req = metadata_encode(self.client_id, topics, num)
@@ -199,12 +143,9 @@ local function _fetch_metadata(self, new_topic)
             local brokers, topic_partitions = metadata_decode(resp)
             self.brokers, self.topic_partitions = brokers, topic_partitions
 
-            _metadata_unlock(self, true)
             return brokers, topic_partitions
         end
     end
-
-    _metadata_unlock(self)
 
     ngx_log(ERR, "all brokers failed in fetch topic metadata")
     return nil, "all brokers failed in fetch topic metadata"
@@ -259,6 +200,26 @@ function _M.fetch_metadata(self, topic)
     _fetch_metadata(self, topic)
 
     return _metadata_cache(self, topic)
+end
+
+
+function _M.choose_broker(self, topic, partition_id)
+    local brokers, partitions = self:fetch_metadata(topic)
+    if not brokers then
+        return nil, partitions
+    end
+
+    local partition = partitions[partition_id]
+    if not partition then
+        return nil, "not found partition"
+    end
+
+    local config = brokers[partition.leader]
+    if not config then
+        return nil, "not found broker"
+    end
+
+    return config
 end
 
 

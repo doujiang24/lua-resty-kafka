@@ -10,16 +10,11 @@ local rshift = bit.rshift
 local band = bit.band
 local char = string.char
 local crc32 = ngx.crc32_long
+local tonumber = tonumber
 
 
-local ok, new_tab = pcall(require, "table.new")
-if not ok then
-    new_tab = function (narr, nrec) return {} end
-end
-
-
-local _M = new_tab(0, 15)
-_M._VERSION = '0.01'
+local _M = { _VERSION = "0.01" }
+local mt = { __index = _M }
 
 
 local API_VERSION = 0
@@ -81,7 +76,7 @@ function _M.new(self, apikey, correlation_id, client_id)
         _req = req,
         offset = 7,
         len = c_len + 10,
-    }, { __index = _M })
+    }, mt)
 end
 
 
@@ -145,6 +140,7 @@ end
 
 
 local function message_package(key, msg)
+    local key = key or ""
     local key_len = #key
     local len = #msg
 

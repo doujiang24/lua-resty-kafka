@@ -9,16 +9,11 @@ local byte = string.byte
 local sub = string.sub
 local lshift = bit.lshift
 local bor = bit.bor
+local strbyte = string.byte
 
 
-local ok, new_tab = pcall(require, "table.new")
-if not ok then
-    new_tab = function (narr, nrec) return {} end
-end
-
-
-local _M = new_tab(0, 9)
-_M._VERSION = '0.01'
+local _M = { _VERSION = "0.01" }
+local mt = { __index = _M }
 
 
 function _M.new(self, str)
@@ -26,7 +21,7 @@ function _M.new(self, str)
         str = str,
         offset = 1,
         correlation_id = 0,
-    }, { __index = _M })
+    }, mt)
 
     resp.correlation_id = resp:int32()
 
@@ -49,10 +44,8 @@ end
 
 local function to_int32(str, offset)
     local offset = offset or 1
-    return bor(lshift(byte(str, offset), 24),
-               lshift(byte(str, offset + 1), 16),
-               lshift(byte(str, offset + 2), 8),
-               byte(str, offset + 3))
+    local a, b, c, d = strbyte(str, offset, offset + 3)
+    return bor(lshift(a, 24), lshift(b, 16), lshift(c, 8), d)
 end
 _M.to_int32 = to_int32
 
@@ -68,19 +61,21 @@ end
 
 -- XX return cdata: LL
 function _M.int64(self)
-    local str = self.str
     local offset = self.offset
     self.offset = offset + 4
 
-    return 4294967296LL *
-            bor(lshift(byte(str, offset), 56),
-                lshift(byte(str, offset + 1), 48),
-                lshift(byte(str, offset + 2), 40),
-                lshift(byte(str, offset + 3), 32))
-            + 16777216LL * byte(str, offset + 4)
-            + bor(lshift(byte(str, offset + 5), 16),
-                lshift(byte(str, offset + 6), 8),
-                byte(str, offset + 7))
+    local a, b, c, d, e, f, g, h = strbyte(self.str, offset, offset + 7)
+
+    --[[
+    -- only 52 bit accuracy
+    local hi = bor(lshift(a, 24), lshift(b, 16), lshift(c, 8), d)
+    local lo = bor(lshift(f, 16), lshift(g, 8), h)
+    return hi * 4294967296 + 16777216 * e + lo
+    --]]
+
+    return 4294967296LL * bor(lshift(a, 56), lshift(b, 48), lshift(c, 40), lshift(d, 32))
+            + 16777216LL * e
+            + bor(lshift(f, 16), lshift(g, 8), h)
 end
 
 

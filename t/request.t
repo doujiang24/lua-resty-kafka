@@ -3,7 +3,7 @@
 use Test::Nginx::Socket::Lua;
 use Cwd qw(cwd);
 
-repeat_each(1);
+repeat_each(2);
 
 plan tests => repeat_each() * (3 * blocks());
 
