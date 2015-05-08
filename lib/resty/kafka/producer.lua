@@ -283,6 +283,10 @@ local _timer_flush
 _timer_flush = function (premature, self, time)
     _flush_buffer(self)
 
+    if premature then
+        return
+    end
+
     local ok, err = timer_at(time, _timer_flush, self, time)
     if not ok then
         ngx_log(ERR, "failed to create timer at _timer_flush, err: ", err)

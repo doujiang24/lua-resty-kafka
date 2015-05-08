@@ -62,7 +62,7 @@ end
 -- XX return cdata: LL
 function _M.int64(self)
     local offset = self.offset
-    self.offset = offset + 4
+    self.offset = offset + 8
 
     local a, b, c, d, e, f, g, h = strbyte(self.str, offset, offset + 7)
 
