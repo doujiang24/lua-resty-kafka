@@ -200,10 +200,12 @@ local function _batch_send(self, sendbuffer)
             return true
         end
 
-        ngx_sleep(self.retry_backoff / 1000)   -- ms to s
         self.client:refresh()
 
         try_num = try_num + 1
+        if try_num < self.max_retry then
+            ngx_sleep(self.retry_backoff / 1000)   -- ms to s
+        end
     end
 end
 

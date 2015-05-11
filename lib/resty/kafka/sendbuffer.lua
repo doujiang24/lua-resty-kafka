@@ -102,6 +102,7 @@ function _M.err(self, topic, partition_id, err, retryable)
     if err then
         buffer.err = err
         buffer.retryable = retryable
+        return buffer.index
     else
         return buffer.err, buffer.retryable
     end

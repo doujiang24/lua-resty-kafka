@@ -279,7 +279,6 @@ Hello world
 
 === TEST 7: two topic in a batch
 --- http_config eval: $::HttpConfig
---- ONLY
 --- config
     location /t {
         content_by_lua '

@@ -175,3 +175,44 @@ GET /t
 two topic successed!
 --- no_error_log
 [error]
+
+
+=== TEST 5: kafka return error
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+
+            local cjson = require "cjson"
+            local producer = require "resty.kafka.producer"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local message = "halo world"
+            local p, err = producer:new(broker_list)
+
+            local offset, err = p:send("test", "a", message)
+            if not offset then
+                ngx.say("send err:", err)
+                return
+            end
+
+            -- XX: just hack for testing
+            p.client.topic_partitions.test = { [2] = { id = 2, leader = 0 }, [1] = { id = 1, leader = 0 }, [0] = { id = 0, leader = 0 }, num = 3 }
+
+            local offset2, err = p:send("test", "b", message)
+            if not offset2 then
+                ngx.say("send err:", err)
+                return
+            end
+            ngx.say("offset: ", tostring(offset2 - offset))
+        ';
+    }
+--- request
+GET /t
+--- response_body
+send err:not found partition
+--- no_error_log
+[error]
