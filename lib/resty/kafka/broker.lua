@@ -28,12 +28,12 @@ function _M.send_receive(self, request)
         return nil, err, true
     end
 
+    sock:settimeout(self.config.socket_timeout)
+
     local ok, err = sock:connect(self.host, self.port)
     if not ok then
         return nil, err, true
     end
-
-    sock:settimeout(self.config.socket_timeout)
 
     local bytes, err = sock:send(request:package())
     if not bytes then
