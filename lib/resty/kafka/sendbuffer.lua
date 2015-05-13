@@ -53,6 +53,7 @@ function _M.add(self, topic, partition_id, key, msg)
 
     if index == 0 then
         self.queue_num = self.queue_num + 1
+        buffer.retryable = true
     end
 
     queue[index + 1] = key

@@ -146,7 +146,6 @@ local function _send(self, broker_conf, topic_partitions)
             for topic, partitions in pairs(result) do
                 for partition_id, r in pairs(partitions) do
                     local errcode = r.errcode
-                    local partition = topic_partitions.topics[topic].partitions[partition_id]
 
                     if errcode == 0 then
                         sendbuffer:offset(topic, partition_id, r.offset)
