@@ -361,3 +361,45 @@ Hello world
 send num:1
 --- no_error_log
 [error]
+
+
+=== TEST 9: two send in a batch
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            ngx.req.read_body();
+
+            local cjson = require "cjson"
+            local producer = require "resty.kafka.producer"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT},
+            }
+
+            local key = "key"
+            local message = ngx.req.get_body_data();
+
+            local p = producer:new(broker_list, { producer_type = "async", flush_time = 10000})
+            ngx.sleep(0.01)
+            -- 2 message
+            local size, err = p:send("test", key, message)
+            p:flush()
+            local offset0 = p:offset()
+
+            local size, err = p:send("test", key, message)
+            local size, err = p:send("test", key, message)
+            p:flush()
+
+            local offset1 = p:offset()
+
+            ngx.say("send num:", tonumber(offset1 - offset0))
+        ';
+    }
+--- request
+POST /t
+Hello world
+--- response_body
+send num:2
+--- no_error_log
+[error]

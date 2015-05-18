@@ -69,11 +69,13 @@ end
 
 
 function _M.offset(self, topic, partition_id, offset)
+    local buffer = self.topics[topic][partition_id]
+
     if not offset then
-        return self.topics[topic][partition_id].offset
+        return buffer.offset
     end
 
-    self.topics[topic][partition_id].offset = offset
+    buffer.offset = offset + (buffer.index / 2)
 end
 
 
