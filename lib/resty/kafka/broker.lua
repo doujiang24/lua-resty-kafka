@@ -37,15 +37,16 @@ function _M.send_receive(self, request)
 
     local bytes, err = sock:send(request:package())
     if not bytes then
-        return nil, err
+        return nil, err, true
     end
 
     local data, err = sock:receive(4)
     if not data then
         if err == "timeout" then
             sock:close()
+            return nil, err
         end
-        return nil, err
+        return nil, err, true
     end
 
     local len = to_int32(data)
@@ -54,8 +55,9 @@ function _M.send_receive(self, request)
     if not data then
         if err == "timeout" then
             sock:close()
+            return nil, err
         end
-        return nil, err
+        return nil, err, true
     end
 
     sock:setkeepalive(self.config.keepalive_timeout, self.config.keepalive_size)
