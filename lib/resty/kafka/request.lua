@@ -50,6 +50,7 @@ end
 
 -- XX int can be cdata: LL or lua number
 local function str_int64(int)
+    local int = int * 1LL
     return char(tonumber(band(rshift(int, 56), 0xff)),
                 tonumber(band(rshift(int, 48), 0xff)),
                 tonumber(band(rshift(int, 40), 0xff)),
