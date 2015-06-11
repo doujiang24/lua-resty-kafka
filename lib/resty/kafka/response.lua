@@ -29,6 +29,16 @@ function _M.new(self, str)
 end
 
 
+function _M.int8(self)
+    local str = self.str
+    local offset = self.offset
+    self.offset = offset + 1
+
+    local num = byte(str, offset)
+    return bor((num >= 128) and 0xffffff00 or 0, num)
+end
+
+
 function _M.int16(self)
     local str = self.str
     local offset = self.offset
@@ -92,10 +102,45 @@ end
 function _M.bytes(self)
     local len = self:int32()
 
+    if len == -1 then
+        len = 0
+    end
+
     local offset = self.offset
     self.offset = offset + len
 
     return sub(self.str, offset, offset + len - 1)
+end
+
+
+function _M.message_set(self, start_offset)
+    local msg_set_size = self:int32()
+
+    local messages = {}
+    local len = 0
+    local i = 1
+    local offset
+
+    while len < msg_set_size do
+        offset = self:int64()
+
+        local msg_size = self:int32()
+        local crc = self:int32()
+        local magic = self:int8()
+        local attr = self:int8()
+        local key = self:bytes()
+        local value = self:bytes()
+
+        len = len + msg_size + 12
+
+        if offset >= start_offset then
+            messages[i] = key
+            messages[i + 1] = value
+            i = i + 2
+        end
+    end
+
+    return messages, offset and (offset >= start_offset) and (offset + 1) or start_offset
 end
 
 
