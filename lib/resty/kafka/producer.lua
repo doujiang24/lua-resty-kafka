@@ -34,7 +34,10 @@ local _M = { _VERSION = "0.01" }
 local mt = { __index = _M }
 
 
-local cluster_inited
+-- weak value table is useless here, cause _timer_flush always ref p
+-- so, weak value table won't works
+local cluster_inited = {}
+local DEFAULT_CLUSTER_NAME = 1
 
 
 local function default_partitioner(key, num, correlation_id)
@@ -295,11 +298,12 @@ _timer_flush = function (premature, self, time)
 end
 
 
-function _M.new(self, broker_list, producer_config)
+function _M.new(self, broker_list, producer_config, cluster_name)
+    local name = cluster_name or DEFAULT_CLUSTER_NAME
     local opts = producer_config or {}
     local async = opts.producer_type == "async"
-    if async and cluster_inited then
-        return cluster_inited
+    if async and cluster_inited[name] then
+        return cluster_inited[name]
     end
 
     local cli = client:new(broker_list, producer_config)
@@ -322,7 +326,7 @@ function _M.new(self, broker_list, producer_config)
     }, mt)
 
     if async then
-        cluster_inited = p
+        cluster_inited[name] = p
         _timer_flush(nil, p, (opts.flush_time or 1000) / 1000)  -- default 1s
     end
     return p
