@@ -216,7 +216,7 @@ buffer config ( only work `producer_type` = "async" )
 * `batch_size`
 
     Specifies the `send.buffer.bytes`. Default `1M`(may reach 2M).
-    Be carefull, *SHOULD* be smaller than the `socket.request.max.bytes / 2 - 10k` config in kafka server.
+    Be careful, *SHOULD* be smaller than the `socket.request.max.bytes / 2 - 10k` config in kafka server.
 
 * `max_buffering`
 
