@@ -63,7 +63,7 @@ Synopsis
                 -- this is async producer_type and bp will be reused in the whole nginx worker
                 local bp = producer:new(broker_list, { producer_type = "async" })
 
-                local ok, err = p:send("test", key, message)
+                local ok, err = bp:send("test", key, message)
                 if not ok then
                     ngx.say("send err:", err)
                     return
