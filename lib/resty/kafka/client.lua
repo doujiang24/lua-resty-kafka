@@ -179,7 +179,7 @@ function _M.new(self, broker_list, client_config)
         broker_list = broker_list,
         topic_partitions = {},
         brokers = {},
-        client_id = "worker:" .. pid(),
+        client_id = "worker" .. pid(),
         socket_config = socket_config,
     }, mt)
 
