@@ -34,7 +34,7 @@ local _M = { _VERSION = "0.01" }
 local mt = { __index = _M }
 
 
-local cluster_inited
+local cluster_inited = {}
 
 
 local function default_partitioner(key, num, correlation_id)
@@ -297,9 +297,10 @@ end
 
 function _M.new(self, broker_list, producer_config)
     local opts = producer_config or {}
+    local cluster_name = opts.cluster_name == "default"
     local async = opts.producer_type == "async"
-    if async and cluster_inited then
-        return cluster_inited
+    if async and cluster_inited[cluster_name] then
+        return cluster_inited[cluster_name]
     end
 
     local cli = client:new(broker_list, producer_config)
@@ -322,7 +323,7 @@ function _M.new(self, broker_list, producer_config)
     }, mt)
 
     if async then
-        cluster_inited = p
+        cluster_inited[cluster_name] = p
         _timer_flush(nil, p, (opts.flush_time or 1000) / 1000)  -- default 1s
     end
     return p
