@@ -39,7 +39,7 @@ Synopsis
                 }
 
                 local key = "key"
-                local message = "halo world"
+                local message = "hallo world"
 
                 -- usually we do not use this library directly
                 local cli = client:new(broker_list)
