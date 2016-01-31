@@ -26,7 +26,6 @@ run_tests();
 
 __DATA__
 
-
 === TEST 1: force flush
 --- http_config eval: $::HttpConfig
 --- config
@@ -78,6 +77,7 @@ send num:1
 [error]
 
 
+
 === TEST 2: timer flush
 --- http_config eval: $::HttpConfig
 --- config
@@ -114,6 +114,7 @@ GET /t
 offset bigger than 0: true
 --- no_error_log
 [error]
+
 
 
 === TEST 3: buffer flush
@@ -159,6 +160,7 @@ send num:0
 [error]
 
 
+
 === TEST 4: error handle
 --- http_config eval: $::HttpConfig
 --- config
@@ -197,6 +199,7 @@ GET /t
 --- response_body
 send ok:true
 --- error_log: failed to send to kafka, topic: test; partition_id: -1; retryable: true
+
 
 
 === TEST 5: wrong in error handle
@@ -241,6 +244,7 @@ send ok:true
 --- error_log: failed to callback error_handle
 
 
+
 === TEST 6: work in log phase
 --- http_config eval: $::HttpConfig
 --- config
@@ -275,6 +279,7 @@ Hello world
 Hello world
 --- no_error_log
 [error]
+
 
 
 === TEST 7: two topic in a batch
@@ -320,6 +325,7 @@ send num:2
 [error]
 
 
+
 === TEST 8: unretryable
 --- http_config eval: $::HttpConfig
 --- config
@@ -361,6 +367,7 @@ Hello world
 send num:1
 --- no_error_log
 [error]
+
 
 
 === TEST 9: two send in a batch

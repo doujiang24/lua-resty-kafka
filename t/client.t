@@ -26,7 +26,6 @@ run_tests();
 
 __DATA__
 
-
 === TEST 1: simple fetch
 --- http_config eval: $::HttpConfig
 --- config
@@ -61,6 +60,7 @@ GET /t
 .*replicas.*
 --- no_error_log
 [error]
+
 
 
 === TEST 2: timer refresh

@@ -26,7 +26,6 @@ run_tests();
 
 __DATA__
 
-
 === TEST 1: add
 --- http_config eval: $::HttpConfig
 --- config
@@ -54,6 +53,7 @@ overflow:nil
 overflow:true
 --- no_error_log
 [error]
+
 
 
 === TEST 2: offset
@@ -89,6 +89,7 @@ offset:0
 offset:101
 --- no_error_log
 [error]
+
 
 
 === TEST 3: clear
@@ -137,6 +138,7 @@ used:1
 [error]
 
 
+
 === TEST 4: loop
 --- http_config eval: $::HttpConfig
 --- config
@@ -165,6 +167,7 @@ topic:test; partition_id:1
 topic:test2; partition_id:1
 --- no_error_log
 [error]
+
 
 
 === TEST 5: aggregator

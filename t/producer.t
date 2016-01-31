@@ -26,7 +26,6 @@ run_tests();
 
 __DATA__
 
-
 === TEST 1: simple send
 --- http_config eval: $::HttpConfig
 --- config
@@ -61,6 +60,7 @@ GET /t
 [error]
 
 
+
 === TEST 2: broker list has bad one
 --- http_config eval: $::HttpConfig
 --- config
@@ -93,6 +93,7 @@ GET /t
 --- response_body_like
 .*offset.*
 --- error_log: fetch_metadata
+
 
 
 === TEST 3: two send
@@ -136,6 +137,7 @@ offset diff: 1
 [error]
 
 
+
 === TEST 4: two topic send
 --- http_config eval: $::HttpConfig
 --- config
@@ -175,6 +177,7 @@ GET /t
 two topic successed!
 --- no_error_log
 [error]
+
 
 
 === TEST 5: kafka return error

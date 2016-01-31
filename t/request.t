@@ -26,7 +26,6 @@ run_tests();
 
 __DATA__
 
-
 === TEST 1: simple pack
 --- http_config eval: $::HttpConfig
 --- config
@@ -65,6 +64,7 @@ ffff
 7fffffffffffffff
 --- no_error_log
 [error]
+
 
 
 === TEST 2: response unpack

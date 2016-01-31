@@ -1,7 +1,32 @@
-lua-resty-kafka
-===============
+Name
+=====
 
-Lua kafka client driver for the ngx_lua based on the cosocket API
+lua-resty-kafka - Lua kafka client driver for the ngx_lua based on the cosocket API
+
+Table of Contents
+=================
+
+* [Name](#name)
+* [Status](#status)
+* [Description](#description)
+* [Synopsis](#synopsis)
+* [Modules](#modules)
+    * [resty.kafka.client](#restykafkaclient)
+        * [Methods](#methods)
+            * [new](#new)
+            * [fetch_metadata](#fetch_metadata)
+            * [refresh](#refresh)
+    * [resty.kafka.producer](#restykafkaproducer)
+        * [Methods](#methods)
+            * [new](#new)
+            * [send](#send)
+            * [offset](#offset)
+            * [flush](#flush)
+* [Installation](#installation)
+* [TODO](#todo)
+* [Author](#author)
+* [Copyright and License](#copyright-and-license)
+* [See Also](#see-also)
 
 Status
 ======
@@ -76,6 +101,8 @@ Synopsis
 ```
 
 
+[Back to TOC](#table-of-contents)
+
 Modules
 =======
 
@@ -89,11 +116,13 @@ To load this module, just do this
     local client = require "resty.kafka.client"
 ```
 
+[Back to TOC](#table-of-contents)
+
 ### Methods
 
 #### new
 
-`syntax: p = producer:new(broker_list, client_config)`
+`syntax: c = client:new(broker_list, client_config)`
 
 The `broker_list` is a list of broker, like the below
 
@@ -127,20 +156,26 @@ client config
     Specifies the time to auto refresh the metadata in milliseconds. Then metadata will not auto refresh if is nil.
 
 
+[Back to TOC](#table-of-contents)
+
 #### fetch_metadata
-`syntax: brokers, partitions = client:fetch_metadata(topic)`
+`syntax: brokers, partitions = c:fetch_metadata(topic)`
 
 In case of success, return the all brokers and partitions of the `topic`.
 In case of errors, returns `nil` with a string describing the error.
 
 
+[Back to TOC](#table-of-contents)
+
 #### refresh
-`syntax: brokers, partitions = client:refresh()`
+`syntax: brokers, partitions = c:refresh()`
 
 This will refresh the metadata of all topics which have been fetched by `fetch_metadata`.
 In case of success, return all brokers and all partitions of all topics.
 In case of errors, returns `nil` with a string describing the error.
 
+
+[Back to TOC](#table-of-contents)
 
 resty.kafka.producer
 ----------------------
@@ -151,11 +186,13 @@ To load this module, just do this
     local producer = require "resty.kafka.producer"
 ```
 
+[Back to TOC](#table-of-contents)
+
 ### Methods
 
 #### new
 
-`syntax: p = producer:new(broker_list, producer_config)`
+`syntax: p = producer:new(broker_list, producer_config?, cluster_name?)`
 
 It's recommend to use async producer_type.
 
@@ -234,6 +271,10 @@ buffer config ( only work `producer_type` = "async" )
 
 Not support compression now.
 
+The third optional `cluster_name` specifies the name of the cluster, default `1` (yeah, it's number). You can Specifies different names when you have two or more kafka clusters. And this only works with `async` producer_type.
+
+
+[Back to TOC](#table-of-contents)
 
 #### send
 `syntax: ok, err = p:send(topic, key, message)`
@@ -253,20 +294,26 @@ Not support compression now.
     In case of errors, returns `nil` with a string describing the error (`buffer overflow`).
 
 
+[Back to TOC](#table-of-contents)
+
 #### offset
 
-`syntax: sum, details = bp:offset()`
+`syntax: sum, details = p:offset()`
 
     Return the sum of all the topic-partition offset (return by the ProduceRequest api);
     and the details of each topic-partition
 
 
+[Back to TOC](#table-of-contents)
+
 #### flush
 
-`syntax: ok = bp:flush()`
+`syntax: ok = p:flush()`
 
 Always return `true`.
 
+
+[Back to TOC](#table-of-contents)
 
 Installation
 ============
@@ -287,6 +334,8 @@ Ensure that the system account running your Nginx ''worker'' proceses have
 enough permission to read the `.lua` file.
 
 
+[Back to TOC](#table-of-contents)
+
 TODO
 ====
 
@@ -295,11 +344,15 @@ TODO
 3.  Offset Commit/Fetch API
 
 
+[Back to TOC](#table-of-contents)
+
 Author
 ======
 
 Dejiang Zhu (doujiang24) <doujiang24@gmail.com>.
 
+
+[Back to TOC](#table-of-contents)
 
 Copyright and License
 =====================
@@ -319,6 +372,8 @@ Redistribution and use in source and binary forms, with or without modification,
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+[Back to TOC](#table-of-contents)
+
 See Also
 ========
 * the ngx_lua module: http://wiki.nginx.org/HttpLuaModule
@@ -326,3 +381,6 @@ See Also
 * the [lua-resty-redis](https://github.com/openresty/lua-resty-redis) library
 * the [lua-resty-logger-socket](https://github.com/cloudflare/lua-resty-logger-socket) library
 * the [sarama](https://github.com/Shopify/sarama)
+
+[Back to TOC](#table-of-contents)
+

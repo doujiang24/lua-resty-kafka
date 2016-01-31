@@ -26,7 +26,6 @@ run_tests();
 
 __DATA__
 
-
 === TEST 1: add
 --- http_config eval: $::HttpConfig
 --- config
@@ -64,6 +63,7 @@ add err:buffer overflow
 [error]
 
 
+
 === TEST 2: pop
 --- http_config eval: $::HttpConfig
 --- config
@@ -97,6 +97,7 @@ topic2key2message2
 nil
 --- no_error_log
 [error]
+
 
 
 === TEST 3: left_num
