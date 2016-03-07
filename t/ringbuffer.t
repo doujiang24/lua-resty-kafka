@@ -38,19 +38,19 @@ __DATA__
             local key = "key"
             local message = "halo world"
 
-            local ok, err, batch = buffer:add(topic, key, message)
-            ngx.say("add ok:", ok, "; batch:", batch)
+            local ok, err = buffer:add(topic, key, message)
+            ngx.say("add ok:", ok, "; batch:", buffer:need_send())
 
-            local ok, err, batch = buffer:add(topic, key, message)
-            ngx.say("add ok:", ok, "; batch:", batch)
+            local ok, err = buffer:add(topic, key, message)
+            ngx.say("add ok:", ok, "; batch:", buffer:need_send())
 
-            local ok, err, batch = buffer:add(topic, key, message)
-            local ok, err, batch = buffer:add(topic, key, message)
+            local ok, err = buffer:add(topic, key, message)
+            local ok, err = buffer:add(topic, key, message)
             if not ok then
                 ngx.say("add err:", err)
                 return
             end
-            ngx.say("add ok:", ok, "; batch:", batch)
+            ngx.say("add ok:", ok, "; batch:", buffer:need_send())
         ';
     }
 --- request

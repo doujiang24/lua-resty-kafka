@@ -266,7 +266,10 @@ local function _flush(premature, self)
 
     _flush_unlock(self)
 
-    if is_exiting() and self.ringbuffer:left_num() > 0 then
+    if ringbuffer:need_send() then
+        _flush_buffer(self)
+
+    elseif is_exiting() and ringbuffer:left_num() > 0 then
         -- still can create 0 timer even exiting
         _flush_buffer(self)
     end
@@ -336,12 +339,14 @@ end
 -- offset is cdata (LL in luajit)
 function _M.send(self, topic, key, message)
     if self.async then
-        local ok, err, batch = self.ringbuffer:add(topic, key, message)
+        local ringbuffer = self.ringbuffer
+
+        local ok, err = ringbuffer:add(topic, key, message)
         if not ok then
             return nil, err
         end
 
-        if batch or is_exiting() then
+        if not self.flushing and (ringbuffer:need_send() or is_exiting()) then
             _flush_buffer(self)
         end
 
