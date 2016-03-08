@@ -20,6 +20,8 @@ local INFO = ngx.INFO
 local DEBUG = ngx.DEBUG
 local debug = ngx.config.debug
 local crc32 = ngx.crc32_short
+local thread_spawn = ngx.thread.spawn
+local thread_wait = ngx.thread.wait
 local pcall = pcall
 local pairs = pairs
 
@@ -192,10 +194,26 @@ local function _batch_send(self, sendbuffer)
             break
         end
 
+        local thread_num = send_num / 2 - 1
+        local threads
+        if thread_num > 0 then
+            threads = new_tab(thread_num, 0)
+        end
+
         for i = 1, send_num, 2 do
             local broker_conf, topic_partitions = sendbroker[i], sendbroker[i + 1]
 
-            _send(self, broker_conf, topic_partitions)
+            -- the last one work in the current thread
+            if i == send_num - 1 then
+                _send(self, broker_conf, topic_partitions)
+
+            else
+                threads[(i + 1) / 2] = thread_spawn(_send, self, broker_conf, topic_partitions)
+            end
+        end
+
+        for i = 1, thread_num do
+            thread_wait(threads[i])
         end
 
         if sendbuffer:done() then

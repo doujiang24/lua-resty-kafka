@@ -171,8 +171,8 @@ function _M.new(self, broker_list, client_config)
     local opts = client_config or {}
     local socket_config = {
         socket_timeout = opts.socket_timeout or 3000,
-        keepalive_timeout = opts.keepalive_timeout or 600 * 1000,   -- 10 min
-        keepalive_size = opts.keepalive_size or 2,
+        keepalive_timeout = opts.keepalive_timeout or 180 * 1000,   -- 3 min
+        keepalive_size = opts.keepalive_size or 5,
     }
 
     local cli = setmetatable({
