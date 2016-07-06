@@ -262,6 +262,22 @@ local function _flush(premature, self)
 
             sendbuffer:clear(topic, partition_id)
         end
+    else
+        for topic, partition_id, buffer in sendbuffer:loop() do
+            local index = buffer.index
+
+            if self.success_handle then
+                local ok, err = pcall(self.success_handle, topic, partition_id, index / 2)
+                if not ok then
+                    ngx_log(ERR, "failed to callback success_handle: ", err)
+                end
+            else
+                ngx_log(ERR, "buffered messages send to kafka ok, topic: ", topic,
+                    ", partition_id: ", partition_id, ", length: ", index / 2)
+            end
+
+            sendbuffer:clear(topic, partition_id)
+        end
     end
 
     _flush_unlock(self)
@@ -319,6 +335,7 @@ function _M.new(self, broker_list, producer_config, cluster_name)
         required_acks = opts.required_acks or 1,
         partitioner = opts.partitioner or default_partitioner,
         error_handle = opts.error_handle,
+        success_handle = opts.success_handle,
         async = async,
         socket_config = cli.socket_config,
         ringbuffer = ringbuffer:new(opts.batch_num or 200, opts.max_buffering or 50000),   -- 200, 50K
