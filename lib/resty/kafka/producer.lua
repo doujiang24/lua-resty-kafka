@@ -270,15 +270,11 @@ local function _flush(premature, self)
         end
     else
         local counter = {}
-        for topic, partition_id, queue in buffer_copy:loop() do
-            local i = 0
-            for k,v in pairs(queue) do
-                i = i + 1
-            end
+        for topic, partition_id, q in buffer_copy:loop() do
             if not counter[topic] then
                 counter[topic] = {}
             end
-            counter[topic][partition_id] = i
+            counter[topic][partition_id] = q.index / 2
         end
         buffer_copy = nil
 
