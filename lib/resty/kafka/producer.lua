@@ -337,13 +337,28 @@ _timer_flush = function (premature, self, time)
 end
 
 
+local function shuffleTable(t)
+    local rand = math.random
+    local iterations = #t
+    local j
+
+    for i = iterations, 2, -1 do
+        j = rand(i)
+        t[i], t[j] = t[j], t[i]
+    end
+end
+
 function _M.new(self, broker_list, producer_config, cluster_name)
+    math.randomseed( os.time() )
+
     local name = cluster_name or DEFAULT_CLUSTER_NAME
     local opts = producer_config or {}
     local async = opts.producer_type == "async"
     if async and cluster_inited[name] then
         return cluster_inited[name]
     end
+
+    shuffleTable(broker_list)
 
     local cli = client:new(broker_list, producer_config)
     local p = setmetatable({
