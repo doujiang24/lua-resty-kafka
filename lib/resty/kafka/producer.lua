@@ -250,7 +250,7 @@ local function _flush(premature, self)
 
     if not all_done then
         -- two possible cases:
-        --      1. all messages are sent previouslyb and therefore buffer is empty and nothing to send
+        --      1. all messages are sent previously and therefore buffer is empty and nothing to send
         --      2. messages not sent, buffer is not empty, real error occured
         for topic, partition_id, buffer in sendbuffer:loop() do
             local queue, index, err, retryable = buffer.queue, buffer.index, buffer.err, buffer.retryable
