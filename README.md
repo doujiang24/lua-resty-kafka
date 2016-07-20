@@ -261,13 +261,21 @@ buffer config ( only work `producer_type` = "async" )
 
 * `error_handle`
 
-    Specifies the error handle, handle data when buffer send to kafka error.
-    `syntax: error_handle = function (topic, partition_id, message_queue, index, err, retryable) end`,
-    the failed messages in the message_queue is like ```{ key1, msg1, key2, msg2 } ```,
-    `key` in the message_queue is empty string `""` even if orign is `nil`.
-    `index` is the message_queue length, should not use `#message_queue`.
-    when `retryable` is `true` that means kafka server surely not committed this messages, you can safely retry to send;
+    Specifies function to handle any error when buffer sent to kafka.
+    Syntax: `error_handle = function (topic, partition_id, message_queue, index, err, retryable) <function body> end`,
+    `topic` and `partition_id` identify destination of failed messages,
+    Failed messages in the message_queue is like ```{ key1, msg1, key2, msg2 } ```,
+    `key` in the message_queue is empty string `""` even if origin is `nil`.
+    `index` is the message_queue length, should not use `#message_queue` due its structure.
+    When `retryable` is `true` that means kafka server surely not committed this messages, you can safely retry to send;
     and else means maybe, recommend to log to somewhere.
+    
+* `success_handle`
+    
+    Specifies function to handle successful send of message buffer to kafka.
+    Syntax: `success_handle = function (topic, count) <function body> end`
+    `topic` is destination topic and
+    `count` is equal to count of messages successfully sent to named topic
 
 Not support compression now.
 
