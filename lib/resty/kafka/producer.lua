@@ -137,6 +137,7 @@ end
 local function _send(self, broker_conf, topic_partitions)
     local sendbuffer = self.sendbuffer
     local resp, retryable = nil, true
+    local send_result = true
 
     local bk, err = broker:new(broker_conf.host, broker_conf.port, self.socket_config)
     if bk then
@@ -166,11 +167,13 @@ local function _send(self, broker_conf, topic_partitions)
 
                         ngx_log(INFO, "retry to send messages to kafka err: ", err, ", retryable: ", retryable0,
                             ", topic: ", topic, ", partition_id: ", partition_id, ", length: ", index / 2)
+
+                        send_result = false
                     end
                 end
             end
 
-            return
+            return send_result
         end
     end
 
@@ -180,6 +183,8 @@ local function _send(self, broker_conf, topic_partitions)
             sendbuffer:err(topic, partition_id, err, retryable)
         end
     end
+
+    return send_result
 end
 
 
@@ -195,7 +200,33 @@ local function _batch_send(self, sendbuffer)
         for i = 1, send_num, 2 do
             local broker_conf, topic_partitions = sendbroker[i], sendbroker[i + 1]
 
-            _send(self, broker_conf, topic_partitions)
+            -- collect number of messages from topic_partitions structure for future use
+            local buffer = self.accumulator
+            buffer = buffer:copyfrom(topic_partitions)
+            local res = _send(self, broker_conf, topic_partitions)
+            -- distinguish last try:
+            if res then
+                -- call success_handle for each topic
+                ngx_log(INFO, "buffered messages send to kafka ok, topic")
+            end
+            if try_num == self.max_retry and not res then
+                -- send failed
+                for topic, v1 in pairs(buffer.topics) do
+                    for partition_id, content in pairs(v1.partitions) do
+                        local queue, index, err, retryable = content.queue, content.index, content.err, content.retryable
+                        if self.error_handle then
+                            local ok, err = pcall(self.error_handle, topic, partition_id, queue, index, err, retryable)
+                            if not ok then
+                                ngx_log(ERR, "failed to callback error_handle: ", err)
+                            end
+                        else
+                            ngx_log(ERR, "buffered messages send to kafka err: ", err, ", topic: ", topic, ", partition_id: ", partition_id, ", length: ", index / 2)
+                        end
+                    end
+                end
+
+                ngx_log(ERR, "buffered messages send to kafka err")
+            end
         end
 
         if sendbuffer:done() then
@@ -243,62 +274,7 @@ local function _flush(premature, self)
         end
     end
 
-    local buffer_copy = self.accumulator
-    buffer_copy = buffer_copy:copyfrom(sendbuffer)
-
-    local all_done = _batch_send(self, sendbuffer)
-
-    if not all_done then
-        -- two possible cases:
-        --      1. all messages are sent previously and therefore buffer is empty and nothing to send
-        --      2. messages not sent, buffer is not empty, real error occured
-        for topic, partition_id, buffer in sendbuffer:loop() do
-            local queue, index, err, retryable = buffer.queue, buffer.index, buffer.err, buffer.retryable
-
-            if self.error_handle then
-                local ok, err = pcall(self.error_handle, topic, partition_id, queue, index, err, retryable)
-                if not ok then
-                    ngx_log(ERR, "failed to callback error_handle: ", err)
-                end
-            else
-                ngx_log(ERR, "buffered messages send to kafka err: ", err,
-                    ", retryable: ", retryable, ", topic: ", topic,
-                    ", partition_id: ", partition_id, ", length: ", index / 2)
-            end
-
-            sendbuffer:clear(topic, partition_id)
-        end
-    else
-        local counter = {}
-        for topic, partition_id, q in buffer_copy:loop() do
-            if not counter[topic] then
-                counter[topic] = {}
-            end
-            counter[topic][partition_id] = q.index / 2
-        end
-        buffer_copy = nil
-
-        -- accumulate number of sent messages per topic
-        local topics = {}
-        for topic, partition in pairs(counter) do
-            for k,v in pairs(counter[topic]) do
-                topics[topic] = (topics[topic] or 0) + (v or 0)
-            end
-        end
-
-
-        -- call success_handle for each topic
-        for topic, count in pairs(topics) do
-            if self.success_handle then
-                local ok, err = pcall(self.success_handle, topic, count)
-                if not ok then
-                    ngx_log(ERR, "failed to callback success_handle: ", err)
-                end
-            else
-                ngx_log(INFO, "buffered messages send to kafka ok, topic: ", topic, " count: ", count)
-            end
-        end
-    end
+    _batch_send(self, sendbuffer)
 
     _flush_unlock(self)
 
