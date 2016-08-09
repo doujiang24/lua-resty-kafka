@@ -313,7 +313,7 @@ _timer_flush = function (premature, self, time)
 end
 
 
-local function shuffleTable(t)
+local function shuffle_table(t)
     local rand = math.random
     local iterations = #t
     local j
@@ -325,7 +325,7 @@ local function shuffleTable(t)
 end
 
 function _M.new(self, broker_list, producer_config, cluster_name)
-    math.randomseed( os.time() )
+    math.randomseed( ngx.time() )
 
     local name = cluster_name or DEFAULT_CLUSTER_NAME
     local opts = producer_config or {}
@@ -334,7 +334,7 @@ function _M.new(self, broker_list, producer_config, cluster_name)
         return cluster_inited[name]
     end
 
-    shuffleTable(broker_list)
+    shuffle_table(broker_list)
 
     local cli = client:new(broker_list, producer_config)
     local p = setmetatable({
