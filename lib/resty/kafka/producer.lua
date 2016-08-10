@@ -151,8 +151,19 @@ local function _send(self, broker_conf, topic_partitions)
                     local errcode = r.errcode
 
                     if errcode == 0 then
+                        local count = topic_partitions.topics[topic].partitions[partition_id].index / 2
+
                         sendbuffer:offset(topic, partition_id, r.offset)
                         sendbuffer:clear(topic, partition_id)
+
+                        if self.success_handle then
+                            local ok, err = pcall(self.success_handle, topic, count)
+                            if not ok then
+                                ngx_log(ERR, "failed to callback success_handle: ", err)
+                            end
+                        else
+                            ngx_log(INFO, "buffered messages send to kafka ok, topic: ", topic, " count: ", count)
+                        end
                     else
                         err = Errors[errcode]
 
@@ -189,6 +200,18 @@ local function _batch_send(self, sendbuffer)
         -- aggregator
         local send_num, sendbroker = sendbuffer:aggregator(self.client)
         if send_num == 0 then
+            local count = 0
+            for topic, partitions in pairs(sendbuffer.topics) do
+                for partition_id, buffer in pairs(partitions) do
+                    count = count + sendbuffer.topics[topic][partition_id].index / 2
+                end
+            end
+            if count ~= 0 and (try_num == self.max_retry) then
+                -- we have messages to send, but cannot do it due lack of metadata,
+                -- so we need to trigger error_handler to not to loose them
+                return false
+            end
+
             break
         end
 
@@ -243,15 +266,8 @@ local function _flush(premature, self)
         end
     end
 
-    local buffer_copy = self.accumulator
-    buffer_copy = buffer_copy:copyfrom(sendbuffer)
-
     local all_done = _batch_send(self, sendbuffer)
-
     if not all_done then
-        -- two possible cases:
-        --      1. all messages are sent previously and therefore buffer is empty and nothing to send
-        --      2. messages not sent, buffer is not empty, real error occured
         for topic, partition_id, buffer in sendbuffer:loop() do
             local queue, index, err, retryable = buffer.queue, buffer.index, buffer.err, buffer.retryable
 
@@ -267,36 +283,6 @@ local function _flush(premature, self)
             end
 
             sendbuffer:clear(topic, partition_id)
-        end
-    else
-        local counter = {}
-        for topic, partition_id, q in buffer_copy:loop() do
-            if not counter[topic] then
-                counter[topic] = {}
-            end
-            counter[topic][partition_id] = q.index / 2
-        end
-        buffer_copy = nil
-
-        -- accumulate number of sent messages per topic
-        local topics = {}
-        for topic, partition in pairs(counter) do
-            for k,v in pairs(counter[topic]) do
-                topics[topic] = (topics[topic] or 0) + (v or 0)
-            end
-        end
-
-
-        -- call success_handle for each topic
-        for topic, count in pairs(topics) do
-            if self.success_handle then
-                local ok, err = pcall(self.success_handle, topic, count)
-                if not ok then
-                    ngx_log(ERR, "failed to callback success_handle: ", err)
-                end
-            else
-                ngx_log(INFO, "buffered messages send to kafka ok, topic: ", topic, " count: ", count)
-            end
         end
     end
 
@@ -337,7 +323,7 @@ _timer_flush = function (premature, self, time)
 end
 
 
-local function shuffleTable(t)
+local function shuffle_table(t)
     local rand = math.random
     local iterations = #t
     local j
@@ -349,7 +335,7 @@ local function shuffleTable(t)
 end
 
 function _M.new(self, broker_list, producer_config, cluster_name)
-    math.randomseed( os.time() )
+    math.randomseed( ngx.time() )
 
     local name = cluster_name or DEFAULT_CLUSTER_NAME
     local opts = producer_config or {}
@@ -358,7 +344,7 @@ function _M.new(self, broker_list, producer_config, cluster_name)
         return cluster_inited[name]
     end
 
-    shuffleTable(broker_list)
+    shuffle_table(broker_list)
 
     local cli = client:new(broker_list, producer_config)
     local p = setmetatable({
@@ -374,8 +360,7 @@ function _M.new(self, broker_list, producer_config, cluster_name)
         async = async,
         socket_config = cli.socket_config,
         ringbuffer = ringbuffer:new(opts.batch_num or 200, opts.max_buffering or 50000),   -- 200, 50K
-        sendbuffer = sendbuffer:new(opts.batch_num or 200, opts.batch_size or 1048576),
-        accumulator = sendbuffer:new(opts.batch_num or 200, opts.batch_size or 1048576)
+        sendbuffer = sendbuffer:new(opts.batch_num or 200, opts.batch_size or 1048576)
                         -- default: 1K, 1M
                         -- batch_size should less than (MaxRequestSize / 2 - 10KiB)
                         -- config in the kafka server, default 100M
