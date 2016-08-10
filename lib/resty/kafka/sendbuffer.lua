@@ -2,10 +2,8 @@
 
 
 local setmetatable = setmetatable
-local getmetatable = getmetatable
 local pairs = pairs
 local next = next
-local type = type
 
 
 local ok, new_tab = pcall(require, "table.new")
@@ -201,5 +199,6 @@ function _M.aggregator(self, client)
 
     return num, sendbroker
 end
+
 
 return _M
