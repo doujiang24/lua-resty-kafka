@@ -39,7 +39,7 @@ local function _metadata_cache(self, topic)
         return self.brokers, partitions
     end
 
-    return nil, "not foundd topic"
+    return nil, "not found topic"
 end
 
 
