@@ -10,7 +10,7 @@ if not ok then
 end
 
 
-local _M = { _VERSION = "0.01" }
+local _M = {}
 local mt = { __index = _M }
 
 function _M.new(self, batch_num, max_buffering)

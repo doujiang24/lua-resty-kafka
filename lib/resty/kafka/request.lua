@@ -13,7 +13,7 @@ local crc32 = ngx.crc32_long
 local tonumber = tonumber
 
 
-local _M = { _VERSION = "0.01" }
+local _M = {}
 local mt = { __index = _M }
 
 

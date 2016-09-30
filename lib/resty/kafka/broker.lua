@@ -9,7 +9,7 @@ local setmetatable = setmetatable
 local tcp = ngx.socket.tcp
 
 
-local _M = { _VERSION = "0.01" }
+local _M = {}
 local mt = { __index = _M }
 
 

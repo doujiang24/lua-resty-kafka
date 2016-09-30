@@ -21,7 +21,5 @@ local _M = {
     [16]    = 'NotCoordinatorForConsumerCode',
 }
 
-_M._VERSION = "0.01"
-
 
 return _M
