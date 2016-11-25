@@ -60,6 +60,15 @@ local function str_int64(int)
                 tonumber(band(int, 0xff)))
 end
 
+-- for easy to debug
+function mt.__tostring( self )
+    local str = ""
+    for _,v in ipairs(self._req) do
+        str = str .. tostring(v) .. " "
+    end
+    str = str .. tostring(self.offset) .. " " .. tostring(self.len)
+    return str
+end
 
 function _M.new(self, apikey, correlation_id, client_id)
     local c_len = #client_id

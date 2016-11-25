@@ -238,7 +238,7 @@ local function _flush(premature, self)
         end
 
         local overflow = sendbuffer:add(topic, partition_id, key, msg)
-        if overflow then    -- reached batch_size in one topic-partition
+        if overflow then    -- reached batch_size/batch_num in one topic-partition
             break
         end
     end
