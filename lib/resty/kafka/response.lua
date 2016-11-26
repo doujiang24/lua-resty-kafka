@@ -15,6 +15,10 @@ local strbyte = string.byte
 local _M = {}
 local mt = { __index = _M }
 
+-- for easy to debug
+function mt.__tostring( self )
+    return tostring(self.str) .. " " .. tostring(self.offset) .. " " .. tostring(self.correlation_id)
+end
 
 function _M.new(self, str)
     local resp = setmetatable({

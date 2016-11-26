@@ -23,6 +23,19 @@ local crc32 = ngx.crc32_short
 local pcall = pcall
 local pairs = pairs
 
+local lrucache = require "resty.lrucache"
+local cache = lrucache.new(1)
+if not cache then
+    return ngx_log(ERR, "failed to create the cache: " .. (err or "unknown"))
+else
+    cache:set("max_timers_count", 0)
+end
+
+-- according to the current implementation, each "running timer" will take one (fake) connection record 
+-- from the global connection record list configured by the standard worker_connections directive in nginx.conf. 
+-- so limit the timers. global max timer count for all workers
+-- todo: make it configurable
+local max_timers_count = 128
 
 local ok, new_tab = pcall(require, "table.new")
 if not ok then
@@ -238,7 +251,7 @@ local function _flush(premature, self)
         end
 
         local overflow = sendbuffer:add(topic, partition_id, key, msg)
-        if overflow then    -- reached batch_size in one topic-partition
+        if overflow then    -- reached batch_size/batch_num in one topic-partition
             break
         end
     end
@@ -272,6 +285,10 @@ local function _flush(premature, self)
     elseif is_exiting() and ringbuffer:left_num() > 0 then
         -- still can create 0 timer even exiting
         _flush_buffer(self)
+    else
+        -- timer ends, decrease the timer count
+        local timer_count = tonumber(cache:get("max_timers_count"))
+        cache:set("max_timers_count", timer_count - 1)
     end
 
     return true
@@ -279,9 +296,18 @@ end
 
 
 _flush_buffer = function (self)
+    local timer_count = tonumber(cache:get("max_timers_count"))
+    if timer_count >= max_timers_count then
+        return
+    end
+    -- maybe the coroutine is not yielded, so the timer will not start immediately
     local ok, err = timer_at(0, _flush, self)
     if not ok then
         ngx_log(ERR, "failed to create timer at _flush_buffer, err: ", err)
+    else
+        -- whatever the timer is running or pending, increase the existing timer count
+        local count = tonumber(cache:get("max_timers_count"))
+        cache:set("max_timers_count", count + 1)
     end
 end
 
