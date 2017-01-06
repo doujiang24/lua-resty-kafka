@@ -230,6 +230,12 @@ producer config, most like in <http://kafka.apache.org/documentation.html#produc
     `syntax: partitioner = function (key, partition_num, correlation_id) end`,
     the correlation_id is an auto increment id in producer. Default partitioner is:
 
+* `api_version`
+
+    Specifies the produce API version. Default `2`. This requires Kafka server 0.10.0.0 or above.
+    If you use Kafka 0.9.x, `api_version` should be `0` or `1`.
+    If you use Kafka 0.8.x, `api_version` should be `0`.
+
 
 ```lua
 local function default_partitioner(key, num, correlation_id)
