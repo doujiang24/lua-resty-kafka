@@ -1,4 +1,5 @@
 -- Copyright (C) Dejiang Zhu(doujiang24)
+local ffi = require "ffi"
 
 
 local bit = require "bit"
@@ -16,8 +17,13 @@ local tonumber = tonumber
 local _M = {}
 local mt = { __index = _M }
 
+local MESSAGE_VERSION_0 = 0
+local MESSAGE_VERSION_1 = 1
 
-local API_VERSION = 0
+
+_M.API_VERSION_V0 = 0
+_M.API_VERSION_V1 = 1
+_M.API_VERSION_V2 = 2
 
 _M.ProduceRequest = 0
 _M.FetchRequest = 1
@@ -61,19 +67,22 @@ local function str_int64(int)
 end
 
 
-function _M.new(self, apikey, correlation_id, client_id)
+function _M.new(self, apikey, correlation_id, client_id, api_version)
     local c_len = #client_id
+    api_version = api_version or _M.API_VERSION_V0
 
     local req = {
         0,   -- request size: int32
         str_int16(apikey),
-        str_int16(API_VERSION),
+        str_int16(api_version),
         str_int32(correlation_id),
         str_int16(c_len),
         client_id,
     }
     return setmetatable({
         _req = req,
+        api_key = apikey,
+        api_version = api_version,
         offset = 7,
         len = c_len + 10,
     }, mt)
@@ -139,24 +148,43 @@ function _M.bytes(self, str)
 end
 
 
-local function message_package(key, msg)
+local function message_package(key, msg, message_version)
     local key = key or ""
     local key_len = #key
     local len = #msg
+    message_version = message_version or MESSAGE_VERSION_0
 
-    local req = {
-        -- MagicByte
-        str_int8(0),
-        -- XX hard code no Compression
-        str_int8(0),
-        str_int32(key_len),
-        key,
-        str_int32(len),
-        msg,
-    }
+    local req
+    local head_len
+    if message_version == MESSAGE_VERSION_1 then
+        req = {
+            -- MagicByte
+            str_int8(1),
+            -- XX hard code no Compression
+            str_int8(0),
+            str_int64(ffi.new("int64_t", (os.time() * 1000))), -- timestamp
+            str_int32(key_len),
+            key,
+            str_int32(len),
+            msg,
+        }
+        head_len = 22
+    else
+        req = {
+            -- MagicByte
+            str_int8(0),
+            -- XX hard code no Compression
+            str_int8(0),
+            str_int32(key_len),
+            key,
+            str_int32(len),
+            msg,
+        }
+        head_len = 14
+    end
 
     local str = concat(req)
-    return crc32(str), str, key_len + len + 14
+    return crc32(str), str, key_len + len + head_len
 end
 
 
@@ -166,8 +194,13 @@ function _M.message_set(self, messages, index)
     local msg_set_size = 0
     local index = index or #messages
 
+    local message_version = MESSAGE_VERSION_0
+    if self.api_key == _M.ProduceRequest and self.api_version == _M.API_VERSION_V2 then
+        message_version = MESSAGE_VERSION_1
+    end
+
     for i = 1, index, 2 do
-        local crc32, str, msg_len = message_package(messages[i], messages[i + 1])
+        local crc32, str, msg_len = message_package(messages[i], messages[i + 1], message_version)
 
         req[off + 1] = str_int64(0) -- offset
         req[off + 2] = str_int32(msg_len) -- include the crc32 length

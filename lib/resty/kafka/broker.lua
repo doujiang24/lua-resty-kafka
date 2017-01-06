@@ -62,7 +62,7 @@ function _M.send_receive(self, request)
 
     sock:setkeepalive(self.config.keepalive_timeout, self.config.keepalive_size)
 
-    return response:new(data), nil, true
+    return response:new(data, request.api_version), nil, true
 end
 
 
