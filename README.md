@@ -145,7 +145,7 @@ client config
 
 * `keepalive_timeout`
 
-    Specifies the maximal idle timeout (in milliseconds) for the keepalive connection.
+    Specifies the maximal idle timeout (in milliseconds) for the keepalive connection. You should also refer to the 'connections.max.idle.ms' configured in Kafka.
 
 * `keepalive_size`
 
@@ -155,6 +155,18 @@ client config
 
     Specifies the time to auto refresh the metadata in milliseconds. Then metadata will not auto refresh if is nil.
 
+* `sasl_enable`
+
+    A boolean value indicates whether we should authenticate to kafka first. We now only support kafka [SASL_PLAIN](https://kafka.apache.org/documentation/#security_sasl_plain) mechanism.
+
+* `username`
+
+    A string value used to authentication, when 'sasl_enable' set to 'true'.
+
+* `password`
+
+    A string value or a function value, thus we can generate dynamic password or avoid exposing real password.
+    `syntax: password = "myPassword"` or `syntax: password = function () return ngx.md5("username" .. "myPassword") end`
 
 [Back to TOC](#table-of-contents)
 
@@ -200,7 +212,7 @@ It's recommend to use async producer_type.
 
 An optional options table can be specified. The following options are as follows:
 
-`socket_timeout`, `keepalive_timeout`, `keepalive_size`, `refresh_interval` are the same as in `client_config`
+`socket_timeout`, `keepalive_timeout`, `keepalive_size`, `refresh_interval`, `sasl_enable`, `username`, `password` are the same as in `client_config`
 
 producer config, most like in <http://kafka.apache.org/documentation.html#producerconfigs>
 
