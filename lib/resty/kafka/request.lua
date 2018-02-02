@@ -26,6 +26,7 @@ _M.MetadataRequest = 3
 _M.OffsetCommitRequest = 8
 _M.OffsetFetchRequest = 9
 _M.ConsumerMetadataRequest = 10
+_M.SaslHandshakeRequest = 17
 
 
 local function str_int8(int)
