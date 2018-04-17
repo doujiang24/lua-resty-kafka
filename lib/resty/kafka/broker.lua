@@ -3,7 +3,6 @@
 
 local response = require "resty.kafka.response"
 
-
 local to_int32 = response.to_int32
 local setmetatable = setmetatable
 local tcp = ngx.socket.tcp
@@ -62,8 +61,9 @@ function _M.send_receive(self, request)
 
     sock:setkeepalive(self.config.keepalive_timeout, self.config.keepalive_size)
 
-    return response:new(data), nil, true
+    return response:new(data, request.api_version), nil, true
 end
 
 
 return _M
+
