@@ -219,3 +219,42 @@ GET /t
 send err:not found partition
 --- no_error_log
 [error]
+
+
+=== TEST 6: two async send
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            local producer = require "resty.kafka.producer"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local key = "key"
+            local message = "halo world"
+
+            local p = producer:new(broker_list, { producer_type = "async" })
+            p:send("test", key, message)
+            ngx.sleep(0.1)
+            local offset1, _ = p:offset()
+
+            local i = 0
+            while i < 2000 do
+                p:send("test", key, message)
+                i = i + 1
+            end
+            ngx.sleep(0.2)
+
+            local offset2, _ = p:offset()
+
+            ngx.say("offset diff: ", tonumber(offset2 - offset1))
+        ';
+    }
+--- request
+GET /t
+--- response_body
+offset diff: 2000
+--- no_error_log
+[error]

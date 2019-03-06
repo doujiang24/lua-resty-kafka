@@ -226,6 +226,8 @@ local function _flush(premature, self)
     local ringbuffer = self.ringbuffer
     local sendbuffer = self.sendbuffer
 
+    self._flush_buffer_pending = false
+
     while true do
         local topic, key, msg = ringbuffer:pop()
         if not topic then
@@ -279,9 +281,12 @@ end
 
 
 _flush_buffer = function (self)
-    local ok, err = timer_at(0, _flush, self)
-    if not ok then
-        ngx_log(ERR, "failed to create timer at _flush_buffer, err: ", err)
+    if not self._flush_buffer_pending then
+      self._flush_buffer_pending = true
+      local ok, err = timer_at(0, _flush, self)
+      if not ok then
+          ngx_log(ERR, "failed to create timer at _flush_buffer, err: ", err)
+      end
     end
 end
 
