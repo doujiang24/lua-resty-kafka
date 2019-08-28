@@ -21,9 +21,9 @@ local MESSAGE_VERSION_0 = 0
 local MESSAGE_VERSION_1 = 1
 
 
-_M.API_VERSION_V0 = 0
-_M.API_VERSION_V1 = 1
-_M.API_VERSION_V2 = 2
+local API_VERSION_V0 = 0
+local API_VERSION_V1 = 1
+local API_VERSION_V2 = 2
 
 _M.ProduceRequest = 0
 _M.FetchRequest = 1
@@ -69,7 +69,7 @@ end
 
 function _M.new(self, apikey, correlation_id, client_id, api_version)
     local c_len = #client_id
-    api_version = api_version or _M.API_VERSION_V0
+    api_version = api_version or API_VERSION_V0
 
     local req = {
         0,   -- request size: int32
@@ -152,7 +152,6 @@ local function message_package(key, msg, message_version)
     local key = key or ""
     local key_len = #key
     local len = #msg
-    message_version = message_version or MESSAGE_VERSION_0
 
     local req
     local head_len
@@ -169,6 +168,7 @@ local function message_package(key, msg, message_version)
             msg,
         }
         head_len = 22
+
     else
         req = {
             -- MagicByte
@@ -195,7 +195,7 @@ function _M.message_set(self, messages, index)
     local index = index or #messages
 
     local message_version = MESSAGE_VERSION_0
-    if self.api_key == _M.ProduceRequest and self.api_version == _M.API_VERSION_V2 then
+    if self.api_key == _M.ProduceRequest and self.api_version == API_VERSION_V2 then
         message_version = MESSAGE_VERSION_1
     end
 

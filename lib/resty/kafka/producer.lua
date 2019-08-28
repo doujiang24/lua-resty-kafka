@@ -23,6 +23,9 @@ local crc32 = ngx.crc32_short
 local pcall = pcall
 local pairs = pairs
 
+local API_VERSION_V0 = 0
+local API_VERSION_V1 = 1
+local API_VERSION_V2 = 2
 
 local ok, new_tab = pcall(require, "table.new")
 if not ok then
@@ -95,12 +98,13 @@ local function produce_decode(resp)
         for j = 1, partition_num do
             local partition = resp:int32()
 
-            if api_version == request.API_VERSION_V0 or api_version == request.API_VERSION_V1 then
+            if api_version == API_VERSION_V0 or api_version == API_VERSION_V1 then
                 ret[topic][partition] = {
                     errcode = resp:int16(),
                     offset = resp:int64(),
                 }
-            elseif api_version == request.API_VERSION_V2 then
+
+            elseif api_version == API_VERSION_V2 then
                 ret[topic][partition] = {
                     errcode = resp:int16(),
                     offset = resp:int64(),
@@ -329,7 +333,7 @@ function _M.new(self, broker_list, producer_config, cluster_name)
         required_acks = opts.required_acks or 1,
         partitioner = opts.partitioner or default_partitioner,
         error_handle = opts.error_handle,
-        api_version = opts.api_version or request.API_VERSION_V2,
+        api_version = opts.api_version or API_VERSION_V0,
         async = async,
         socket_config = cli.socket_config,
         ringbuffer = ringbuffer:new(opts.batch_num or 200, opts.max_buffering or 50000),   -- 200, 50K

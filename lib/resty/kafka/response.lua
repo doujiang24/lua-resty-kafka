@@ -17,8 +17,6 @@ local _M = {}
 local mt = { __index = _M }
 
 function _M.new(self, str, api_version)
-    api_version = api_version or request.API_VERSION_V0
-
     local resp = setmetatable({
         str = str,
         offset = 1,
