@@ -84,7 +84,7 @@ ffff
                 req[func](req, number)
                 local str = correlation_id .. req._req[#req._req]
 
-                local resp = response:new(str)
+                local resp = response:new(str, req.api_version)
 
                 local cnumber = resp[func](resp)
 

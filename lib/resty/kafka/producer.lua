@@ -23,6 +23,9 @@ local crc32 = ngx.crc32_short
 local pcall = pcall
 local pairs = pairs
 
+local API_VERSION_V0 = 0
+local API_VERSION_V1 = 1
+local API_VERSION_V2 = 2
 
 local ok, new_tab = pcall(require, "table.new")
 if not ok then
@@ -58,7 +61,7 @@ end
 
 local function produce_encode(self, topic_partitions)
     local req = request:new(request.ProduceRequest,
-                            correlation_id(self), self.client.client_id)
+                            correlation_id(self), self.client.client_id, self.api_version)
 
     req:int16(self.required_acks)
     req:int32(self.request_timeout)
@@ -83,6 +86,7 @@ end
 local function produce_decode(resp)
     local topic_num = resp:int32()
     local ret = new_tab(0, topic_num)
+    local api_version = resp.api_version
 
     for i = 1, topic_num do
         local topic = resp:string()
@@ -90,13 +94,23 @@ local function produce_decode(resp)
 
         ret[topic] = {}
 
+        -- ignore ThrottleTime
         for j = 1, partition_num do
             local partition = resp:int32()
 
-            ret[topic][partition] = {
-                errcode = resp:int16(),
-                offset = resp:int64(),
-            }
+            if api_version == API_VERSION_V0 or api_version == API_VERSION_V1 then
+                ret[topic][partition] = {
+                    errcode = resp:int16(),
+                    offset = resp:int64(),
+                }
+
+            elseif api_version == API_VERSION_V2 then
+                ret[topic][partition] = {
+                    errcode = resp:int16(),
+                    offset = resp:int64(),
+                    timestamp = resp:int64(), -- If CreateTime is used, this field is always -1
+                }
+            end
         end
     end
 
@@ -319,6 +333,7 @@ function _M.new(self, broker_list, producer_config, cluster_name)
         required_acks = opts.required_acks or 1,
         partitioner = opts.partitioner or default_partitioner,
         error_handle = opts.error_handle,
+        api_version = opts.api_version or API_VERSION_V0,
         async = async,
         socket_config = cli.socket_config,
         ringbuffer = ringbuffer:new(opts.batch_num or 200, opts.max_buffering or 50000),   -- 200, 50K

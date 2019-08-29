@@ -2,6 +2,7 @@
 
 
 local bit = require "bit"
+local request = require "resty.kafka.request"
 
 
 local setmetatable = setmetatable
@@ -15,12 +16,12 @@ local strbyte = string.byte
 local _M = {}
 local mt = { __index = _M }
 
-
-function _M.new(self, str)
+function _M.new(self, str, api_version)
     local resp = setmetatable({
         str = str,
         offset = 1,
         correlation_id = 0,
+        api_version = api_version,
     }, mt)
 
     resp.correlation_id = resp:int32()
