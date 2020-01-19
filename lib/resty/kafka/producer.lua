@@ -12,6 +12,7 @@ local ringbuffer = require "resty.kafka.ringbuffer"
 
 local setmetatable = setmetatable
 local timer_at = ngx.timer.at
+local timer_every = ngx.timer.every
 local is_exiting = ngx.worker.exiting
 local ngx_sleep = ngx.sleep
 local ngx_log = ngx.log
@@ -239,7 +240,6 @@ local function _flush(premature, self)
 
     local ringbuffer = self.ringbuffer
     local sendbuffer = self.sendbuffer
-
     while true do
         local topic, key, msg = ringbuffer:pop()
         if not topic then
@@ -280,6 +280,9 @@ local function _flush(premature, self)
 
     _flush_unlock(self)
 
+    -- reset _timer_flushing_buffer after flushing complete
+    self._timer_flushing_buffer = false
+
     if ringbuffer:need_send() then
         _flush_buffer(self)
 
@@ -293,25 +296,27 @@ end
 
 
 _flush_buffer = function (self)
-    local ok, err = timer_at(0, _flush, self)
-    if not ok then
-        ngx_log(ERR, "failed to create timer at _flush_buffer, err: ", err)
-    end
-end
+    if self._timer_flushing_buffer then
+        if debug then
+            ngx_log(DEBUG, "another timer is flushing buffer, skipping it")
+        end
 
-
-local _timer_flush
-_timer_flush = function (premature, self, time)
-    _flush_buffer(self)
-
-    if premature then
         return
     end
 
-    local ok, err = timer_at(time, _timer_flush, self, time)
-    if not ok then
-        ngx_log(ERR, "failed to create timer at _timer_flush, err: ", err)
+    local ok, err = timer_at(0, _flush, self)
+    if ok then
+        self._timer_flushing_buffer = true
+        return
     end
+
+    ngx_log(ERR, "failed to create timer_at timer, err:", err)
+end
+
+
+local function _timer_flush(premature, self)
+    self._timer_flushing_buffer = false
+    _flush_buffer(self)
 end
 
 
@@ -336,6 +341,7 @@ function _M.new(self, broker_list, producer_config, cluster_name)
         api_version = opts.api_version or API_VERSION_V0,
         async = async,
         socket_config = cli.socket_config,
+        _timer_flushing_buffer = false,
         ringbuffer = ringbuffer:new(opts.batch_num or 200, opts.max_buffering or 50000),   -- 200, 50K
         sendbuffer = sendbuffer:new(opts.batch_num or 200, opts.batch_size or 1048576)
                         -- default: 1K, 1M
@@ -345,8 +351,13 @@ function _M.new(self, broker_list, producer_config, cluster_name)
 
     if async then
         cluster_inited[name] = p
-        _timer_flush(nil, p, (opts.flush_time or 1000) / 1000)  -- default 1s
+        local ok, err = timer_every((opts.flush_time or 1000) / 1000, _timer_flush, p) -- default: 1s
+        if not ok then
+            ngx_log(ERR, "failed to create timer_every, err: ", err)
+        end
+
     end
+
     return p
 end
 

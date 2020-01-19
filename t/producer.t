@@ -219,3 +219,42 @@ GET /t
 send err:not found partition
 --- no_error_log
 [error]
+
+
+
+=== TEST 6: add a lot of messages 
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua_block {
+
+            local cjson = require "cjson"
+            local producer = require "resty.kafka.producer"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+            local topic = "test"
+            local key = "key"
+            local message = "halo world"
+            local p, err = producer:new(broker_list, { producer_type = "async", flush_time = 100})
+            -- init offset
+            p:send(topic, key, message)
+            p:flush()
+            local offset,_ = p:offset()
+            local i = 0
+            while i < 2000 do
+                 p:send(topic, key, message..tostring(i))
+                 i = i + 1
+            end
+            ngx.sleep(0.2)
+            local offset2, _ = p:offset()
+            ngx.say("offset: ", tostring(offset2 - offset))
+        }
+    }
+--- request
+GET /t
+--- response_body
+offset: 2000LL
+--- no_error_log
+[error]
