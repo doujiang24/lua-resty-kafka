@@ -50,9 +50,10 @@ script:
   - /usr/local/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181  --replication-factor 1 --partitions 2 --topic test3
   - /usr/local/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181  --replication-factor 1 --partitions 2 --topic test4
   - /usr/local/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181  --replication-factor 1 --partitions 2 --topic test5
-  - sudo tar -xzf download-cache/openresty-$OPENRESTY_VER.tar.gz 
+  - tar -xzf download-cache/openresty-$OPENRESTY_VER.tar.gz 
   - cd openresty-$OPENRESTY_VER 
-  - sudo ./configure --prefix=/usr/local/openresty-debug --with-debug 
-  - sudo make -j$JOBS && sudo make install
+  - ./configure --prefix=/usr/local/openresty-debug --with-debug > build.log 2>&1 || (cat build.log && exit 1) 
+  - make -j$JOBS > build.log 2>&1 || (cat build.log && exit 1)  
+  - sudo make install > build.log 2>&1 || (cat build.log && exit 1) 
   - cd .. 
   - make test
