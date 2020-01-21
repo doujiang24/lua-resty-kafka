@@ -229,8 +229,8 @@ GET /t
 num:3
 num:2
 num:1
+topic:test; partition_id:1
 topic:test5; partition_id:1
 topic:test4; partition_id:1
-topic:test; partition_id:1
 --- no_error_log
 [error]
