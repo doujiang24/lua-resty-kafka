@@ -14,5 +14,5 @@ install: all
 	$(INSTALL) lib/resty/kafka/*.lua $(DESTDIR)/$(LUA_LIB_DIR)/resty/kafka
 
 test: all
-	PATH=$(OPENRESTY_PREFIX)/nginx/sbin:$$PATH prove -I../../test-nginx/lib -r t/
+	PATH=$(OPENRESTY_PREFIX)/nginx/sbin:$$PATH prove -I ./../test-nginx/lib -r t/
 

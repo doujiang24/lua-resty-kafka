@@ -1,0 +1,59 @@
+sudo: required
+dist: xenial
+
+os: linux
+
+language: c
+
+addons:
+  apt:
+    packages:
+      - libtest-base-perl
+      - libtext-diff-perl 
+      - libipc-run3-perl 
+      - liburi-perl
+      - libwww-perl
+      - libtest-longstring-perl
+      - liblist-moreutils-perl
+      - libgd-dev
+
+cache:
+  directories:
+  - download-cache
+
+env:
+  global:
+    -JOBS=3
+    -KAFKA_VER=2.4.0
+    -SCALA_VER=2.11
+    -ZK_VER=3.5.6
+    -OPENRESTY_VER=1.15.8.2
+
+install:
+  - git clone https://github.com/openresty/test-nginx.git ../test-nginx
+  - if [ ! -f download-cache/kafka_$SCALA_VER-$KAFKA_VER.tgz ]; then wget -P download-cache http://mirrors.tuna.tsinghua.edu.cn/apache/kafka/$KAFKA_VER/kafka_$SCALA_VER-$KAFKA_VER.tgz;fi
+  - if [ ! -f download-cache/apache-zookeeper-$ZK_VER-bin.tar.gz ]; then wget -P download-cache https://mirrors.tuna.tsinghua.edu.cn/apache/zookeeper/zookeeper-3.5.6/apache-zookeeper-$ZK_VER-bin.tar.gz;fi
+  - if [ ! -f download-cache/openresty-$OPENRESTY_VER.tar.gz ]; then wget -P download-cache https://openresty.org/download/openresty-$OPENRESTY_VER.tar.gz;fi
+
+script: 
+  - sudo tar -xzf download-cache/apache-zookeeper-$ZK_VER-bin.tar.gz -C /usr/local/
+  - sudo tar -xzf download-cache/kafka_$SCALA_VER-$KAFKA_VER.tgz -C /usr/local/
+  - sudo mv /usr/local/kafka_$SCALA_VER-$KAFKA_VER /usr/local/kafka
+  - sudo mv /usr/local/apache-zookeeper-$ZK_VER-bin /usr/local/zookeeper
+  - sudo cp /usr/local/zookeeper/conf/zoo_sample.cfg /usr/local/zookeeper/conf/zoo.cfg
+  - sudo sed -i '$ahost\.name=127.0.0.1' /usr/local/kafka/config/server.properties
+  - sudo /usr/local/zookeeper/bin/zkServer.sh start
+  - sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server.properties
+  - sleep 1
+  - /usr/local/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181  --replication-factor 1 --partitions 2 --topic test
+  - /usr/local/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181  --replication-factor 1 --partitions 2 --topic test2
+  - /usr/local/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181  --replication-factor 1 --partitions 2 --topic test3
+  - /usr/local/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181  --replication-factor 1 --partitions 2 --topic test4
+  - /usr/local/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181  --replication-factor 1 --partitions 2 --topic test5
+  - tar -xzf download-cache/openresty-$OPENRESTY_VER.tar.gz 
+  - cd openresty-$OPENRESTY_VER 
+  - ./configure --prefix=/usr/local/openresty-debug --with-debug > build.log 2>&1 || (cat build.log && exit 1) 
+  - make -j$JOBS > build.log 2>&1 || (cat build.log && exit 1)  
+  - sudo make install > build.log 2>&1 || (cat build.log && exit 1) 
+  - cd .. 
+  - make test
