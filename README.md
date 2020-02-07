@@ -364,7 +364,7 @@ Copyright and License
 
 This module is licensed under the BSD license.
 
-Copyright (C) 2014-2014, by Dejiang Zhu (doujiang24) <doujiang24@gmail.com>.
+Copyright (C) 2014-2020, by Dejiang Zhu (doujiang24) <doujiang24@gmail.com>.
 
 All rights reserved.
 
