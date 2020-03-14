@@ -26,13 +26,13 @@ env:
     -JOBS=3
     -KAFKA_VER=2.4.0
     -SCALA_VER=2.11
-    -ZK_VER=3.5.6
+    -ZK_VER=3.5.7
     -OPENRESTY_VER=1.15.8.2
 
 install:
   - git clone https://github.com/openresty/test-nginx.git ../test-nginx
   - if [ ! -f download-cache/kafka_$SCALA_VER-$KAFKA_VER.tgz ]; then wget -P download-cache http://mirrors.tuna.tsinghua.edu.cn/apache/kafka/$KAFKA_VER/kafka_$SCALA_VER-$KAFKA_VER.tgz;fi
-  - if [ ! -f download-cache/apache-zookeeper-$ZK_VER-bin.tar.gz ]; then wget -P download-cache https://mirrors.tuna.tsinghua.edu.cn/apache/zookeeper/zookeeper-3.5.6/apache-zookeeper-$ZK_VER-bin.tar.gz;fi
+  - if [ ! -f download-cache/apache-zookeeper-$ZK_VER-bin.tar.gz ]; then wget -P download-cache https://mirrors.tuna.tsinghua.edu.cn/apache/zookeeper/zookeeper-3.5.7/apache-zookeeper-$ZK_VER-bin.tar.gz;fi
   - if [ ! -f download-cache/openresty-$OPENRESTY_VER.tar.gz ]; then wget -P download-cache https://openresty.org/download/openresty-$OPENRESTY_VER.tar.gz;fi
 
 script: 
