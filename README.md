@@ -45,6 +45,7 @@ This Lua library takes advantage of ngx_lua's cosocket API, which ensures
 
 Note that at least [ngx_lua 0.9.3](https://github.com/openresty/lua-nginx-module/tags) or [ngx_openresty 1.4.3.7](http://openresty.org/#Download) is required, and unfortunately only LuaJIT supported (`--with-luajit`).
 
+Note for `ssl` connections at least [ngx_lua 0.9.11](https://github.com/openresty/lua-nginx-module/tags) or [ngx_openresty 1.7.4.1](http://openresty.org/#Download) is required, and unfortunately only LuaJIT supported (`--with-luajit`).
 
 Synopsis
 ========
@@ -155,6 +156,13 @@ client config
 
     Specifies the time to auto refresh the metadata in milliseconds. Then metadata will not auto refresh if is nil.
 
+* `ssl`
+
+    Specifies if client should use ssl connection. Defaults to false. See: https://github.com/openresty/lua-nginx-module#tcpsocksslhandshake
+
+* `ssl_verify`
+
+    Specifies if client should perform SSL verification. Defaults to false. See: https://github.com/openresty/lua-nginx-module#tcpsocksslhandshake
 
 [Back to TOC](#table-of-contents)
 
@@ -200,7 +208,7 @@ It's recommend to use async producer_type.
 
 An optional options table can be specified. The following options are as follows:
 
-`socket_timeout`, `keepalive_timeout`, `keepalive_size`, `refresh_interval` are the same as in `client_config`
+`socket_timeout`, `keepalive_timeout`, `keepalive_size`, `refresh_interval`, `ssl`, `ssl_verify`  are the same as in `client_config`
 
 producer config, most like in <http://kafka.apache.org/documentation.html#producerconfigs>
 
@@ -388,4 +396,3 @@ See Also
 * the [sarama](https://github.com/Shopify/sarama)
 
 [Back to TOC](#table-of-contents)
-

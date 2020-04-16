@@ -35,6 +35,15 @@ function _M.send_receive(self, request)
         return nil, err, true
     end
 
+    if self.config.ssl then
+        -- TODO: add reused_session for better performance of short-lived connections
+        local _, err = sock:sslhandshake(false, self.host, self.config.ssl_verify)
+        if err then
+            return nil, "failed to do SSL handshake with " ..
+                        self.host .. ":" .. tostring(self.port) .. ": " .. err, true
+        end
+    end
+
     local bytes, err = sock:send(request:package())
     if not bytes then
         return nil, err, true
