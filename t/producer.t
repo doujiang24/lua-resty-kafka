@@ -17,6 +17,7 @@ our $HttpConfig = qq{
 $ENV{TEST_NGINX_RESOLVER} = '8.8.8.8';
 $ENV{TEST_NGINX_KAFKA_HOST} = '127.0.0.1';
 $ENV{TEST_NGINX_KAFKA_PORT} = '9092';
+$ENV{TEST_NGINX_KAFKA_SSL_PORT} = '9093';
 $ENV{TEST_NGINX_KAFKA_ERR_PORT} = '9091';
 
 no_long_string();
@@ -61,7 +62,42 @@ GET /t
 
 
 
-=== TEST 2: broker list has bad one
+=== TEST 2: simple ssl send
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+
+            local cjson = require "cjson"
+            local producer = require "resty.kafka.producer"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_SSL_PORT },
+            }
+
+            local message = "halo world"
+
+            local p = producer:new(broker_list, { ssl = true })
+
+            local offset, err = p:send("test", nil, message)
+            if not offset then
+                ngx.say("send err:", err)
+                return
+            end
+
+            ngx.say("offset: ", tostring(offset))
+        ';
+    }
+--- request
+GET /t
+--- response_body_like
+.*offset.*
+--- no_error_log
+[error]
+
+
+
+=== TEST 3: broker list has bad one
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
@@ -96,7 +132,7 @@ GET /t
 
 
 
-=== TEST 3: two send
+=== TEST 4: two send
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
@@ -138,7 +174,7 @@ offset diff: 1
 
 
 
-=== TEST 4: two topic send
+=== TEST 5: two topic send
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
@@ -180,7 +216,7 @@ two topic successed!
 
 
 
-=== TEST 5: kafka return error
+=== TEST 6: kafka return error
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
@@ -222,7 +258,7 @@ send err:not found partition
 
 
 
-=== TEST 6: add a lot of messages 
+=== TEST 7: add a lot of messages
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
