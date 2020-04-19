@@ -43,9 +43,9 @@ http://wiki.nginx.org/HttpLuaModule
 This Lua library takes advantage of ngx_lua's cosocket API, which ensures
 100% nonblocking behavior.
 
-Note that at least [ngx_lua 0.9.3](https://github.com/openresty/lua-nginx-module/tags) or [ngx_openresty 1.4.3.7](http://openresty.org/#Download) is required, and unfortunately only LuaJIT supported (`--with-luajit`).
+Note that at least [ngx_lua 0.9.3](https://github.com/openresty/lua-nginx-module/tags) or [openresty 1.4.3.7](http://openresty.org/#Download) is required, and unfortunately only LuaJIT supported (`--with-luajit`).
 
-Note for `ssl` connections at least [ngx_lua 0.9.11](https://github.com/openresty/lua-nginx-module/tags) or [ngx_openresty 1.7.4.1](http://openresty.org/#Download) is required, and unfortunately only LuaJIT supported (`--with-luajit`).
+Note for `ssl` connections at least [ngx_lua 0.9.11](https://github.com/openresty/lua-nginx-module/tags) or [openresty 1.7.4.1](http://openresty.org/#Download) is required, and unfortunately only LuaJIT supported (`--with-luajit`).
 
 Synopsis
 ========
