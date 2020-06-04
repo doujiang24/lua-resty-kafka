@@ -176,8 +176,9 @@ local function _fetch_metadata(self, new_topic)
         local host, port, sasl_config = broker_list[i].host,
                                         broker_list[i].port,
                                         broker_list[i].sasl_config
-
+        host = sc.resolver or sc.resolver(host) or host
         local bk = broker:new(host, port, sc, sasl_config)
+
         local resp, err = bk:send_receive(req)
         if not resp then
             ngx_log(INFO, "broker fetch metadata failed, err:", err,
@@ -188,6 +189,8 @@ local function _fetch_metadata(self, new_topic)
             -- we have been referred to. This injects the SASL auth in.
             for _, b in pairs(brokers) do
                 b.sasl_config = sasl_config
+                local h = b.host
+                b.host = sc.resolver and sc.resolver(h) or h
             end
             self.brokers, self.topic_partitions = brokers, topic_partitions
 
@@ -233,7 +236,8 @@ function _M.new(self, broker_list, client_config)
         keepalive_timeout = opts.keepalive_timeout or (600 * 1000),   -- 10 min
         keepalive_size = opts.keepalive_size or 2,
         ssl = opts.ssl or false,
-        ssl_verify = opts.ssl_verify or false
+        ssl_verify = opts.ssl_verify or false,
+        resolver = opts.resolver -- or nil
     }
 
     local cli = setmetatable({
