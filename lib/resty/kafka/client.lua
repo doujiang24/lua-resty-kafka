@@ -134,6 +134,9 @@ local function _fetch_metadata(self, new_topic)
 
     for i = 1, #broker_list do
         local host, port = broker_list[i].host, broker_list[i].port
+        if sc.resolver then
+            host = sc.resolver[host] or host
+        end
         local bk = broker:new(host, port, sc)
 
         local resp, err = bk:send_receive(req)
@@ -142,6 +145,12 @@ local function _fetch_metadata(self, new_topic)
                           ", host: ", host, ", port: ", port)
         else
             local brokers, topic_partitions = metadata_decode(resp)
+            if sc.resolver then
+                for _, broker in pairs(brokers) do
+                    local h = broker.host
+                    broker.host = sc.resolver[h] or h
+                end
+            end
             self.brokers, self.topic_partitions = brokers, topic_partitions
 
             return brokers, topic_partitions
@@ -175,7 +184,8 @@ function _M.new(self, broker_list, client_config)
         keepalive_timeout = opts.keepalive_timeout or 600 * 1000,   -- 10 min
         keepalive_size = opts.keepalive_size or 2,
         ssl = opts.ssl or false,
-        ssl_verify = opts.ssl_verify or false
+        ssl_verify = opts.ssl_verify or false,
+        resolver = opts.resolver -- or nil
     }
 
     local cli = setmetatable({
