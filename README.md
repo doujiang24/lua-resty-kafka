@@ -187,6 +187,10 @@ client config
 
     Specifies if client should perform SSL verification. Defaults to false. See: https://github.com/openresty/lua-nginx-module#tcpsocksslhandshake
 
+* `resolver`
+
+    Specifies a host to ip resolving map (as a table or anything indexable). Default `nil`, no resolving performed. Example `{ some_host = "10.11.12.13" }`
+
 [Back to TOC](#table-of-contents)
 
 #### fetch_metadata
@@ -317,10 +321,6 @@ buffer config ( only work `producer_type` = "async" )
     `index` is the message_queue length, should not use `#message_queue`.
     when `retryable` is `true` that means kafka server surely not committed this messages, you can safely retry to send;
     and else means maybe, recommend to log to somewhere.
-
-* `resolver`
-
-    Specifies a host to ip resolving map (as a table or anything indexable). Default `nil`, no resolving performed.
 
 Not support compression now.
 
