@@ -62,7 +62,7 @@ end
 
 local function produce_encode(self, topic_partitions)
     local req = request:new(request.ProduceRequest,
-                            correlation_id(self), self.client.client_id, self.api_version)
+                            correlation_id(self), self.client.client_id, request.API_VERSION_V1)
 
     req:int16(self.required_acks)
     req:int32(self.request_timeout)
@@ -152,8 +152,7 @@ end
 local function _send(self, broker_conf, topic_partitions)
     local sendbuffer = self.sendbuffer
     local resp, retryable = nil, true
-
-    local bk, err = broker:new(broker_conf.host, broker_conf.port, self.socket_config)
+    local bk, err = broker:new(broker_conf.host, broker_conf.port, self.socket_config, broker_conf.sasl_config)
     if bk then
         local req = produce_encode(self, topic_partitions)
 
