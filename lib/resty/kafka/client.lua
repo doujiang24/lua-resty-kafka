@@ -135,8 +135,11 @@ local function _fetch_metadata(self, new_topic)
     for i = 1, #broker_list do
         local host, port = broker_list[i].host, broker_list[i].port
         local bk = broker:new(host, port, sc)
-        local auth_ok = self.sasl_auth(host, port, sc, self.client_id, broker_list[i].sasl_config)
-        if  auth_ok then
+        local continue = true
+        if broker_list[i].sasl_config then
+            continue = self.sasl_auth(host, port, sc, self.client_id, broker_list[i].sasl_config)
+        end
+        if  continue then
             local resp, err = bk:send_receive(req)
             if not resp then
                 ngx_log(INFO, "broker fetch metadata failed, err:", err,  ", host: ", host, ", port: ", port)
