@@ -30,6 +30,15 @@ function _M.new(self, str, api_version)
 end
 
 
+function _M.int8(self)
+    local str = self.str
+    local offset = self.offset
+    self.offset = offset + 1
+    return  byte(str, offset)
+end
+
+
+
 function _M.int16(self)
     local str = self.str
     local offset = self.offset
@@ -82,6 +91,10 @@ end
 
 function _M.string(self)
     local len = self:int16()
+    -- len = -1 means null
+    if len < 0 then
+        return nil
+    end
 
     local offset = self.offset
     self.offset = offset + len
@@ -92,6 +105,9 @@ end
 
 function _M.bytes(self)
     local len = self:int32()
+    if len < 0 then
+        return nil
+    end
 
     local offset = self.offset
     self.offset = offset + len

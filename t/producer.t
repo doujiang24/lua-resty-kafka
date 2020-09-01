@@ -19,6 +19,10 @@ $ENV{TEST_NGINX_KAFKA_HOST} = '127.0.0.1';
 $ENV{TEST_NGINX_KAFKA_PORT} = '9092';
 $ENV{TEST_NGINX_KAFKA_SSL_PORT} = '9093';
 $ENV{TEST_NGINX_KAFKA_ERR_PORT} = '9091';
+$ENV{TEST_NGINX_KAFKA_SASL_PORT} = '9094';
+$ENV{TEST_NGINX_KAFKA_SASL_USER} = 'admin';
+$ENV{TEST_NGINX_KAFKA_SASL_PWD} = 'admin-secret';
+
 
 no_long_string();
 #no_diff();
@@ -292,5 +296,41 @@ send err:not found partition
 GET /t
 --- response_body
 offset: 2000LL
+--- no_error_log
+[error]
+
+
+
+=== TEST 8: sasl simple send
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+
+            local cjson = require "cjson"
+            local producer = require "resty.kafka.producer"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_SASL_PORT ,
+                sasl_config = { mechanism="PLAIN", user="$TEST_NGINX_KAFKA_SASL_USER", password = "$TEST_NGINX_KAFKA_SASL_PWD" },},
+            }
+
+            local message = "halo world"
+
+            local p = producer:new(broker_list)
+
+            local offset, err = p:send("test", nil, message)
+            if not offset then
+                ngx.say("send err:", err)
+                return
+            end
+
+            ngx.say("offset: ", tostring(offset))
+        ';
+    }
+--- request
+GET /t
+--- response_body_like
+.*offset.*
 --- no_error_log
 [error]

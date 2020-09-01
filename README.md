@@ -61,7 +61,17 @@ Synopsis
                 local producer = require "resty.kafka.producer"
 
                 local broker_list = {
-                    { host = "127.0.0.1", port = 9092 },
+                    {
+                        host = "127.0.0.1",
+                        port = 9092,
+
+                        -- optional auth
+                        sasl_config = {
+                            mechanism = "PLAIN",
+                            user = "USERNAME",
+                            password = "PASSWORD",
+                        },
+                    },
                 }
 
                 local key = "key"
@@ -131,7 +141,14 @@ The `broker_list` is a list of broker, like the below
 [
     {
         "host": "127.0.0.1",
-        "port": 9092
+        "port": 9092,
+
+        // optional auth
+        "sasl_config": {
+            "mechanism": "PLAIN",
+            "user": "USERNAME",
+            "password": "PASSWORD"
+        }
     }
 ]
 ```
