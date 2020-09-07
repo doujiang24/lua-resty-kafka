@@ -26,7 +26,7 @@ env:
     -JOBS=3
     -KAFKA_VER=2.4.0
     -SCALA_VER=2.11
-    -ZK_VER=3.5.7
+    -ZK_VER=3.5.8
     -OPENRESTY_VER=1.15.8.2
 
 install:
