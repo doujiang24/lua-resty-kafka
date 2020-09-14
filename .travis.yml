@@ -70,7 +70,7 @@ script:
     org.apache.kafka.common.security.plain.PlainLoginModule required
     username="admin"
     password="admin-secret";
-    }; ''' > /etc/systemd/system/remote-autossh.service
+    }; ''' > /usr/local/kafka/config/kafka_server_jass.conf
 
   - sudo /usr/local/zookeeper/bin/zkServer.sh start
   - sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server1.properties
