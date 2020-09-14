@@ -3,7 +3,7 @@
 
 local broker = require "resty.kafka.broker"
 local request = require "resty.kafka.request"
-local SASL = require "resty.kafka.sasl"
+
 
 
 local setmetatable = setmetatable
@@ -113,6 +113,7 @@ local function metadata_decode(resp)
 end
 
 
+
 local function _fetch_metadata(self, new_topic)
     local topics, num = {}, 0
     for tp, _p in pairs(self.topic_partitions) do
@@ -132,27 +133,26 @@ local function _fetch_metadata(self, new_topic)
     local broker_list = self.broker_list
     local sc = self.socket_config
     local req = metadata_encode(self.client_id, topics, num)
+
     for i = 1, #broker_list do
-        local host, port = broker_list[i].host, broker_list[i].port
-        local bk = broker:new(host, port, sc)
-        local continue = true
-        if broker_list[i].sasl_config then
-            continue = self.sasl_auth(host, port, sc, self.client_id, broker_list[i].sasl_config)
-        end
-        if  continue then
-            local resp, err = bk:send_receive(req)
-            if not resp then
-                ngx_log(INFO, "broker fetch metadata failed, err:", err,  ", host: ", host, ", port: ", port)
-            else
-                local brokers, topic_partitions = metadata_decode(resp)
-                self.brokers, self.topic_partitions = brokers, topic_partitions
-                return brokers, topic_partitions
-            end
+        local host, port, sasl_config = broker_list[i].host, broker_list[i].port, broker_list[i].sasl_config
+        local bk = broker:new(host, port, sc, sasl_config)
+        local resp, err = bk:send_receive(req)
+        if not resp then
+            ngx_log(INFO, "broker fetch metadata failed, err:", err,
+                          ", host: ", host, ", port: ", port)
+        else
+            local brokers, topic_partitions = metadata_decode(resp)
+            self.brokers, self.topic_partitions = brokers, topic_partitions
+
+            return brokers, topic_partitions
         end
     end
+
     ngx_log(ERR, "all brokers failed in fetch topic metadata")
     return nil, "all brokers failed in fetch topic metadata"
 end
+
 
 _M.refresh = _fetch_metadata
 
@@ -227,72 +227,5 @@ function _M.choose_broker(self, topic, partition_id)
     return config
 end
 
-function _sasl_handshake_decode(resp)
-    local err_code =  resp:int16()
-    local error_msg =  resp:string()
-    --ngx.say(err_code)
-     if err_code ~= 0 then
-        return err_code, error_msg
-    else
-        return 0, nil
-    end
-end
-
-function _sasl_auth_decode(resp)
-    local err_code = resp:int16()
-    local error_msg  = resp:string()
-    local auth_bytes  = resp:bytes()
-    if err_code ~= 0 then
-        return err_code, error_msg
-    else
-        return 0, nil
-    end
-end
-
-function _sasl_auth(host, port, socket_config, client_id, sasl_config)
-    local id = 1
-    local bk = broker:new(host, port, socket_config)
-    local req = request:new(request.SaslAuthenticateRequest, id, client_id, request.API_VERSION_V1)
-    local msg = SASL.encode(sasl_config.mechanism, nil, sasl_config.user, sasl_config.password)
-    req:bytes(msg)
-    local resp, err = bk:send_receive(req)
-    if not resp then
-        return nil , err
-    else
-        return _sasl_auth_decode(resp)
-    end
-
-end
-
-
-function _sasl_handshake(host, port, socket_config, mechanism, client_id)
-    local req = request:new(request.SaslHandshakeRequest, 0, client_id,  request.API_VERSION_V1)
-    req:string(mechanism)
-    local bk = broker:new(host, port, socket_config)
-    local resp, err = bk:send_receive(req)
-    if not resp then
-        return  nil, err
-    else
-        return _sasl_handshake_decode(resp)
-    end
-end
-
-
-function _M.sasl_auth(host, port, socket_config, client_id, sasl_config)
-    local err_code, err = _sasl_handshake(host, port, socket_config, sasl_config.mechanism, client_id)
-    if err_code == 34 then -- ILLEGAL_SASL_STATE reused conn
-        return true
-    end
-    if  err then
-        ngx_log(ERR, "broker sasl handshake resp  err:", err, ", host: ", host, ", port: ", port)
-        return false
-    end
-    local _, err = _sasl_auth(host, port, socket_config, client_id, sasl_config)
-    if err then
-        ngx_log(ERR, "broker sasl auth resp err:", err, ", host: ", host, ", port: ", port)
-        return false
-    end
-    return true
-end
 
 return _M

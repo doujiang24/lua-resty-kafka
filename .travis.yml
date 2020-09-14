@@ -26,7 +26,7 @@ env:
     -JOBS=3
     -KAFKA_VER=2.4.0
     -SCALA_VER=2.11
-    -ZK_VER=3.5.7
+    -ZK_VER=3.5.8
     -OPENRESTY_VER=1.15.8.2
 
 install:
@@ -43,13 +43,38 @@ script:
   - sudo cp /usr/local/zookeeper/conf/zoo_sample.cfg /usr/local/zookeeper/conf/zoo.cfg
   - sudo yes "" | keytool -genkeypair -keyalg RSA -dname "CN=127.0.0.1" -alias 127.0.0.1 -keystore selfsigned.jks -validity 365 -keysize 2048 -storepass changeit
   - sudo mv selfsigned.jks /usr/local/selfsigned.jks; chmod 755 /usr/local/selfsigned.jks
-  - sudo sed -i '$ahost\.name=127.0.0.1' /usr/local/kafka/config/server.properties
-  - sudo sed -i 's;#listeners=PLAINTEXT://:9092;listeners=PLAINTEXT://127.0.0.1:9092,SSL://127.0.0.1:9093;g' /usr/local/kafka/config/server.properties
-  - sudo sed -i '$assl\.keystore\.location = \/usr\/local\/selfsigned.jks' /usr/local/kafka/config/server.properties
-  - sudo sed -i '$assl\.keystore\.password = changeit' /usr/local/kafka/config/server.properties
-  - sudo sed -i '$assl\.key\.password = changeit' /usr/local/kafka/config/server.properties
+  - sudo sed -i '$ahost\.name=127.0.0.1' /usr/local/kafka/config/server1.properties
+  - sudo sed -i 's;#listeners=PLAINTEXT://:9092;listeners=PLAINTEXT://127.0.0.1:9092,SSL://127.0.0.1:9093,SASL_PLAINTEXT://127.0.0.1:9094;g' /usr/local/kafka/config/server1.properties
+  - sudo sed -i '$assl\.keystore\.location = \/usr\/local\/selfsigned.jks' /usr/local/kafka/config/server1.properties
+  - sudo sed -i '$assl\.keystore\.password = changeit' /usr/local/kafka/config/server1.properties
+  - sudo sed -i '$assl\.key\.password = changeit' /usr/local/kafka/config/server1.properties
+  - sudo sed -i '$assl\.key\.password = changeit' /usr/local/kafka/config/server1.properties
+
+  - sudo sed -i '$ahost\.name=127.0.0.1' /usr/local/kafka/config/server2.properties
+  - sudo sed -i 's;#listeners=PLAINTEXT://:9092;SASL_PLAINTEXT://127.0.0.1:9094;g' /usr/local/kafka/config/server2.properties
+
+  - sudo sed -i '$asuper\.users=User:admin' /usr/local/kafka/config/server2.properties
+  - sudo sed -i '$asasl\.mechanism\.inter\.broker\.protocol=PLAIN' /usr/local/kafka/config/server2.properties
+  - sudo sed -i '$asasl\.enabled\.mechanisms=PLAIN' /usr/local/kafka/config/server2.properties
+  - sudo sed -i '$aauthorizer\.class\.name=kafka.security.auth.SimpleAclAuthorizer' /usr/local/kafka/config/server2.properties
+  - sudo sed -i '$asecurity\.inter\.broker\.protocol=SASL_PLAINTEXT' /usr/local/kafka/config/server2.properties
+  - sudo touch /etc/kafka/kafka_server_jass.conf
+  - sudo echo -e '''KafkaServer {
+      org.apache.kafka.common.security.plain.PlainLoginModule required
+      username="admin"
+      password="admin-secret"
+      user_admin="admin-secret"
+    };
+    Client {
+    org.apache.kafka.common.security.plain.PlainLoginModule required
+    username="admin"
+    password="admin-secret";
+    }; ''' > /etc/systemd/system/remote-autossh.service
+
   - sudo /usr/local/zookeeper/bin/zkServer.sh start
-  - sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server.properties
+  - sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server1.properties
+  - sudo  export KAFKA_OPTS="-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
+  - sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server2.properties
   - sleep 5
   - /usr/local/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181  --replication-factor 1 --partitions 2 --topic test
   - /usr/local/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181  --replication-factor 1 --partitions 2 --topic test2

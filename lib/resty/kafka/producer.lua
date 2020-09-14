@@ -152,19 +152,7 @@ end
 local function _send(self, broker_conf, topic_partitions)
     local sendbuffer = self.sendbuffer
     local resp, retryable = nil, true
-    if self.client.sasl_config then
-        local auth_ok = request.sasl_auth(
-            broker_conf.host,
-            broker_conf.port,
-            self.client.socket_config,
-            self.client.client_id,
-            self.client.sasl_config)
-        if not auth_ok then
-            ngx_log(ERR, "retry to send messages to kafka auth failed")
-            return
-        end
-    end
-    local bk, err = broker:new(broker_conf.host, broker_conf.port, self.socket_config)
+    local bk, err = broker:new(broker_conf.host, broker_conf.port, self.socket_config, broker_conf.sasl_config)
     if bk then
         local req = produce_encode(self, topic_partitions)
 
