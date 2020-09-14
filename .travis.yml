@@ -60,7 +60,7 @@ script:
   - sudo sed -i '$aauthorizer\.class\.name=kafka.security.auth.SimpleAclAuthorizer' /usr/local/kafka/config/server2.properties
   - sudo sed -i '$asecurity\.inter\.broker\.protocol=SASL_PLAINTEXT' /usr/local/kafka/config/server2.properties
   - sudo touch /usr/local/kafka/config/kafka_server_jass.conf
-  - sudo echo -e '''KafkaServer {
+  - echo -e '''KafkaServer {
       org.apache.kafka.common.security.plain.PlainLoginModule required
       username="admin"
       password="admin-secret"
@@ -70,7 +70,7 @@ script:
     org.apache.kafka.common.security.plain.PlainLoginModule required
     username="admin"
     password="admin-secret";
-    }; ''' > /usr/local/kafka/config/kafka_server_jass.conf
+    }; ''' | sudo tee /usr/local/kafka/config/kafka_server_jass.conf
 
   - sudo /usr/local/zookeeper/bin/zkServer.sh start
   - sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server1.properties
