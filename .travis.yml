@@ -45,7 +45,7 @@ script:
   - sudo mv selfsigned.jks /usr/local/selfsigned.jks; chmod 755 /usr/local/selfsigned.jks
   - sudo cp /usr/local/kafka/config/server.properties /usr/local/kafka/config/server1.properties
   - sudo sed -i '$ahost\.name=127.0.0.1' /usr/local/kafka/config/server1.properties
-  - sudo sed -i 's;#listeners=PLAINTEXT://:9092;listeners=PLAINTEXT://127.0.0.1:9092,SSL://127.0.0.1:9093,SASL_PLAINTEXT://127.0.0.1:9094;g' /usr/local/kafka/config/server1.properties
+  - sudo sed -i 's;#listeners=PLAINTEXT://:9092;listeners=PLAINTEXT://127.0.0.1:9092,SSL://127.0.0.1:9093;g' /usr/local/kafka/config/server1.properties
   - sudo sed -i '$assl\.keystore\.location = \/usr\/local\/selfsigned.jks' /usr/local/kafka/config/server1.properties
   - sudo sed -i '$assl\.keystore\.password = changeit' /usr/local/kafka/config/server1.properties
   - sudo sed -i '$assl\.key\.password = changeit' /usr/local/kafka/config/server1.properties
