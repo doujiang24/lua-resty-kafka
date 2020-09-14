@@ -43,6 +43,7 @@ script:
   - sudo cp /usr/local/zookeeper/conf/zoo_sample.cfg /usr/local/zookeeper/conf/zoo.cfg
   - sudo yes "" | keytool -genkeypair -keyalg RSA -dname "CN=127.0.0.1" -alias 127.0.0.1 -keystore selfsigned.jks -validity 365 -keysize 2048 -storepass changeit
   - sudo mv selfsigned.jks /usr/local/selfsigned.jks; chmod 755 /usr/local/selfsigned.jks
+  - sudo cp /usr/local/kafka/config/server.properties /usr/local/kafka/config/server1.properties
   - sudo sed -i '$ahost\.name=127.0.0.1' /usr/local/kafka/config/server1.properties
   - sudo sed -i 's;#listeners=PLAINTEXT://:9092;listeners=PLAINTEXT://127.0.0.1:9092,SSL://127.0.0.1:9093,SASL_PLAINTEXT://127.0.0.1:9094;g' /usr/local/kafka/config/server1.properties
   - sudo sed -i '$assl\.keystore\.location = \/usr\/local\/selfsigned.jks' /usr/local/kafka/config/server1.properties
@@ -50,9 +51,9 @@ script:
   - sudo sed -i '$assl\.key\.password = changeit' /usr/local/kafka/config/server1.properties
   - sudo sed -i '$assl\.key\.password = changeit' /usr/local/kafka/config/server1.properties
 
+  - sudo cp /usr/local/kafka/config/server.properties /usr/local/kafka/config/server2.properties
   - sudo sed -i '$ahost\.name=127.0.0.1' /usr/local/kafka/config/server2.properties
   - sudo sed -i 's;#listeners=PLAINTEXT://:9092;SASL_PLAINTEXT://127.0.0.1:9094;g' /usr/local/kafka/config/server2.properties
-
   - sudo sed -i '$asuper\.users=User:admin' /usr/local/kafka/config/server2.properties
   - sudo sed -i '$asasl\.mechanism\.inter\.broker\.protocol=PLAIN' /usr/local/kafka/config/server2.properties
   - sudo sed -i '$asasl\.enabled\.mechanisms=PLAIN' /usr/local/kafka/config/server2.properties
