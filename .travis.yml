@@ -59,7 +59,7 @@ script:
   - sudo sed -i '$asasl\.enabled\.mechanisms=PLAIN' /usr/local/kafka/config/server2.properties
   - sudo sed -i '$aauthorizer\.class\.name=kafka.security.auth.SimpleAclAuthorizer' /usr/local/kafka/config/server2.properties
   - sudo sed -i '$asecurity\.inter\.broker\.protocol=SASL_PLAINTEXT' /usr/local/kafka/config/server2.properties
-  - sudo touch /etc/kafka/kafka_server_jass.conf
+  - sudo touch /usr/local/kafka/config/kafka_server_jass.conf
   - sudo echo -e '''KafkaServer {
       org.apache.kafka.common.security.plain.PlainLoginModule required
       username="admin"
@@ -74,7 +74,7 @@ script:
 
   - sudo /usr/local/zookeeper/bin/zkServer.sh start
   - sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server1.properties
-  - sudo  export KAFKA_OPTS="-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
+  - sudo  export KAFKA_OPTS="-Djava.security.auth.login.config=/usr/local/kafka/config/kafka_server_jass.conf"
   - sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server2.properties
   - sleep 5
   - /usr/local/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181  --replication-factor 1 --partitions 2 --topic test
