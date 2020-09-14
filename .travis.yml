@@ -76,7 +76,7 @@ script:
   - sudo /usr/local/zookeeper/bin/zkServer.sh start
   - sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server1.properties
   - sudo sed '$c\exec $base_dir/kafka-run-class.sh $EXTRA_ARGS -Djava.security.auth.login.config=/usr/local/kafka/config/kafka_server_jass.conf  kafka.Kafka "$@"' /usr/local/kafka/bin/kafka-server-start.sh
-  - sudo -e /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server2.properties
+  - sudo  /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server2.properties
   - sleep 5
   - /usr/local/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181  --replication-factor 1 --partitions 2 --topic test
   - /usr/local/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181  --replication-factor 1 --partitions 2 --topic test2
