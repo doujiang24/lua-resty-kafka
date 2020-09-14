@@ -28,6 +28,7 @@ env:
     -SCALA_VER=2.11
     -ZK_VER=3.5.8
     -OPENRESTY_VER=1.15.8.2
+    -KAFKA_OPTS="-Djava.security.auth.login.config=/usr/local/kafka/config/kafka_server_jass.conf"
 
 install:
   - git clone https://github.com/openresty/test-nginx.git ../test-nginx
@@ -74,8 +75,8 @@ script:
 
   - sudo /usr/local/zookeeper/bin/zkServer.sh start
   - sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server1.properties
-  - sudo  export KAFKA_OPTS="-Djava.security.auth.login.config=/usr/local/kafka/config/kafka_server_jass.conf"
-  - sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server2.properties
+  - sudo sed '$i\KAFKA_OPTS="-Djava.security.auth.login.config=/usr/local/kafka/config/kafka_server_jass.conf"\'   /usr/local/kafka/config/server2.properties
+  - sudo -e /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server2.properties
   - sleep 5
   - /usr/local/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181  --replication-factor 1 --partitions 2 --topic test
   - /usr/local/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181  --replication-factor 1 --partitions 2 --topic test2
