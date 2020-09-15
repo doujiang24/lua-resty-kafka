@@ -45,7 +45,7 @@ script:
       org.apache.kafka.common.security.plain.PlainLoginModule required
       username="admin"
       password="admin-secret"
-      user_admin="admin-secret"
+      user_admin="admin-secret";
     };''' | sudo tee /usr/local/kafka/config/zk_server_jass.conf
 
   - sudo yes "" | keytool -genkeypair -keyalg RSA -dname "CN=127.0.0.1" -alias 127.0.0.1 -keystore selfsigned.jks -validity 365 -keysize 2048 -storepass changeit
@@ -70,7 +70,7 @@ script:
       org.apache.kafka.common.security.plain.PlainLoginModule required
       username="admin"
       password="admin-secret"
-      user_admin="admin-secret"
+      user_admin="admin-secret";
     };
     Client {
     org.apache.kafka.common.security.plain.PlainLoginModule required
