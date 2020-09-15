@@ -45,8 +45,7 @@ script:
       org.apache.kafka.common.security.plain.PlainLoginModule required
       username="admin"
       password="admin-secret"
-      user_admin="admin-secret";
-    };''' | sudo tee /usr/local/kafka/config/zk_server_jass.conf
+      user_admin="admin-secret";};''' | sudo tee /usr/local/kafka/config/zk_server_jass.conf
   - sudo cat /usr/local/kafka/config/zk_server_jass.conf
   - sudo yes "" | keytool -genkeypair -keyalg RSA -dname "CN=127.0.0.1" -alias 127.0.0.1 -keystore selfsigned.jks -validity 365 -keysize 2048 -storepass changeit
   - sudo mv selfsigned.jks /usr/local/selfsigned.jks; chmod 755 /usr/local/selfsigned.jks
@@ -66,17 +65,15 @@ script:
   - sudo cat  /usr/local/kafka/config/server.properties
 
   - sudo touch /usr/local/kafka/config/kafka_server_jass.conf
-  - echo -e '''KafkaServer {
+  - echo -e ''' KafkaServer {
       org.apache.kafka.common.security.plain.PlainLoginModule required
       username="admin"
       password="admin-secret"
-      user_admin="admin-secret";
-    };
+      user_admin="admin-secret"; };
     Client {
     org.apache.kafka.common.security.plain.PlainLoginModule required
     username="admin"
-    password="admin-secret";
-    }; ''' | sudo tee /usr/local/kafka/config/kafka_server_jass.conf
+    password="admin-secret";}; ''' | sudo tee /usr/local/kafka/config/kafka_server_jass.conf
   - sudo cat /usr/local/kafka/config/kafka_server_jass.conf
   - sudo sed  -i '$c\exec $base_dir/kafka-run-class.sh $EXTRA_ARGS -Djava.security.auth.login.config=/usr/local/kafka/config/zk_server_jass.conf org.apache.zookeeper.server.quorum.QurorumPerrMain "$@"' /usr/local/kafka/bin/zookeeper-server-start.sh
   - sudo cat /usr/local/kafka/bin/zookeeper-server-start.sh
