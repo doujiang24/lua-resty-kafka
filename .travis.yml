@@ -41,7 +41,7 @@ script:
   - sudo sed -i '$azookeeper\.sasl\.client=true' /usr/local/kafka/config/zookeeper.properties
   - sudo sed -i '$arequireClientAuthScheme=sasl'/usr/local/kafka/config/zookeeper.properties
   - sudo sed -i '$ajaasLoginRenew=3600000' /usr/local/kafka/config/zookeeper.properties
-  - sudo touch /usr/local/zookeeper/config/zk_server_jass.conf
+  - sudo touch /usr/local/kafka/config/zk_server_jass.conf
   - echo -e '''Server {
       org.apache.kafka.common.security.plain.PlainLoginModule required
       username="admin"
