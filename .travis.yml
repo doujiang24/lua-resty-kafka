@@ -78,11 +78,11 @@ script:
     password="admin-secret";
     }; ''' | sudo tee /usr/local/kafka/config/kafka_server_jass.conf
 
-  - sudo sed '$c\exec $base_dir/kafka-run-class.sh $EXTRA_ARGS -Djava.security.auth.login.config=/usr/local/kafka/config/zk_server_jass.conf  org.apache.zookeeper.server.quorum.QurorumPerrMain "$@"' /usr/local/kafka/bin/zookeeper-server-start.sh
+  - sudo sed  -i '$c\exec $base_dir\/kafka-run-class.sh $EXTRA_ARGS -Djava.security.auth.login.config=\/usr\/local\/kafka\/config\/zk_server_jass.conf org.apache.zookeeper.server.quorum.QurorumPerrMain "$@"\' /usr/local/kafka/bin/zookeeper-server-start.sh
   - sudo cat /usr/local/kafka/bin/zookeeper-server-start.sh
   - sudo /usr/local/kafka/bin/zookeeper-server-start.sh -daemon /usr/local/kafka/config/zookeeper.properties
 
-  - sudo sed '$c\exec $base_dir/kafka-run-class.sh $EXTRA_ARGS -Djava.security.auth.login.config=/usr/local/kafka/config/kafka_server_jass.conf  kafka.Kafka "$@"' /usr/local/kafka/bin/kafka-server-start.sh
+  - sudo sed -i '$c\exec $base_dir/kafka-run-class.sh $EXTRA_ARGS -Djava.security.auth.login.config=/usr/local/kafka/config/kafka_server_jass.conf  kafka.Kafka "$@"\' /usr/local/kafka/bin/kafka-server-start.sh
   - sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server.properties
   - sleep 6
   - sudo ps -elf |grep kafka
