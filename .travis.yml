@@ -27,7 +27,6 @@ env:
     -KAFKA_VER=2.3.0
     -SCALA_VER=2.11
     -OPENRESTY_VER=1.15.8.2
-    -KAFKA_OPTS="-Djava.security.auth.login.config=/usr/local/kafka/config/zookeeper_jaas.conf"
 
 install:
   - git clone https://github.com/openresty/test-nginx.git ../test-nginx
@@ -62,7 +61,7 @@ script:
   - sudo sed -i '$asasl\.mechanism\.inter\.broker\.protocol=PLAIN' /usr/local/kafka/config/server.properties
   - sudo sed -i '$asasl\.enabled\.mechanisms=PLAIN' /usr/local/kafka/config/server.properties
   - sudo sed -i '$aauthorizer\.class\.name=kafka.security.auth.SimpleAclAuthorizer' /usr/local/kafka/config/server.properties
-  - suod cat  /usr/local/kafka/config/server.properties
+  - sudo cat  /usr/local/kafka/config/server.properties
 
   - sudo touch /usr/local/kafka/config/kafka_server_jass.conf
   - echo -e '''KafkaServer {
@@ -77,7 +76,8 @@ script:
     password="admin-secret";
     }; ''' | sudo tee /usr/local/kafka/config/kafka_server_jass.conf
 
-
+  - sudo sed '$c\exec $base_dir/kafka-run-class.sh $EXTRA_ARGS -Djava.security.auth.login.config=/usr/local/kafka/config/zookeeper_jaas.conf  org.apache.zookeeper.server.quorum.QurorumPerrMain "$@"' /usr/local/kafka/bin/zookeeper-server-start.sh
+  - sudo cat /usr/local/kafka/bin/zookeeper-server-start.sh
   - sudo /usr/local/kafka/bin/zookeeper-server-start.sh -daemon /usr/local/kafka/config/zookeeper.properties
 
   - sudo sed '$c\exec $base_dir/kafka-run-class.sh $EXTRA_ARGS -Djava.security.auth.login.config=/usr/local/kafka/config/kafka_server_jass.conf  kafka.Kafka "$@"' /usr/local/kafka/bin/kafka-server-start.sh
