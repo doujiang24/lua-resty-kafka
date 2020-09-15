@@ -84,10 +84,10 @@ script:
   - sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server.properties
   - sleep 6
   - /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test
-  - /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:2181  --replication-factor 1 --partitions 2 --topic test2
-  - /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:2181  --replication-factor 1 --partitions 2 --topic test3
-  - /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:2181  --replication-factor 1 --partitions 2 --topic test4
-  - /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:2181  --replication-factor 1 --partitions 2 --topic test5
+  - /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test2
+  - /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test3
+  - /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test4
+  - /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test5
   - tar -xzf download-cache/openresty-$OPENRESTY_VER.tar.gz
   - cd openresty-$OPENRESTY_VER
   - ./configure --prefix=/usr/local/openresty-debug --with-debug > build.log 2>&1 || (cat build.log && exit 1)
