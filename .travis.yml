@@ -51,7 +51,7 @@ script:
   - sudo yes "" | keytool -genkeypair -keyalg RSA -dname "CN=127.0.0.1" -alias 127.0.0.1 -keystore selfsigned.jks -validity 365 -keysize 2048 -storepass changeit
   - sudo mv selfsigned.jks /usr/local/selfsigned.jks; chmod 755 /usr/local/selfsigned.jks
   - sudo sed -i '$ahost\.name=127.0.0.1' /usr/local/kafka/config/server.properties
-  - sudo sed -i '$alisteners=SASL_PLAINTEXT://127.0.0.1:9092,SSL://127.0.0.1:9093,SASL_PLAINTEXT://127.0.0.1:9094' /usr/local/kafka/config/server.properties
+  - sudo sed -i '$alisteners=PLAINTEXT://127.0.0.1:9092,SSL://127.0.0.1:9093,SASL_PLAINTEXT://127.0.0.1:9094' /usr/local/kafka/config/server.properties
   - sudo sed -i '$aadvertised\.listeners=PLAINTEXT://127.0.0.1:9092,SSL://127.0.0.1:9093,SASL_PLAINTEXT://127.0.0.1:9094' /usr/local/kafka/config/server.properties
   - sudo sed -i '$assl\.keystore\.location = \/usr\/local\/selfsigned.jks' /usr/local/kafka/config/server.properties
   - sudo sed -i '$assl\.keystore\.password = changeit' /usr/local/kafka/config/server.properties
