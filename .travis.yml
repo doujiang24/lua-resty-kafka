@@ -85,6 +85,7 @@ script:
   - sudo sed -i '$c\exec $base_dir/kafka-run-class.sh $EXTRA_ARGS -Djava.security.auth.login.config=/usr/local/kafka/config/kafka_server_jass.conf  kafka.Kafka "$@"' /usr/local/kafka/bin/kafka-server-start.sh
   - sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server.properties
   - sleep 5
+  - sudo tail -200 /usr/local/kafka/logs/server.log
   - sudo ps -elf |grep kafka
   - /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test
   - /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test2
