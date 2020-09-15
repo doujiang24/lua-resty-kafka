@@ -39,7 +39,7 @@ script:
   - sudo mv /usr/local/kafka_$SCALA_VER-$KAFKA_VER /usr/local/kafka
   - sudo sed -i '$aauthProvider\.1=org.apache.zookeeper.server.auth.SASLAuthenticationProvider' /usr/local/kafka/config/zookeeper.properties
   - sudo sed -i '$azookeeper\.sasl\.client=true' /usr/local/kafka/config/zookeeper.properties
-  - sudo sed -i '$arequireClientAuthScheme=sasl'/usr/local/kafka/config/zookeeper.properties
+  - sudo sed -i '$arequireClientAuthScheme=sasl' /usr/local/kafka/config/zookeeper.properties
   - sudo sed -i '$ajaasLoginRenew=3600000' /usr/local/kafka/config/zookeeper.properties
   - sudo touch /usr/local/kafka/config/zk_server_jass.conf
   - echo -e '''Server {
