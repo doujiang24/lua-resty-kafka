@@ -5,6 +5,7 @@ local broker = require "resty.kafka.broker"
 local request = require "resty.kafka.request"
 
 
+
 local setmetatable = setmetatable
 local timer_at = ngx.timer.at
 local ngx_log = ngx.log
@@ -45,7 +46,7 @@ end
 
 local function metadata_encode(client_id, topics, num)
     local id = 0    -- hard code correlation_id
-    local req = request:new(request.MetadataRequest, id, client_id)
+    local req = request:new(request.MetadataRequest, id, client_id, request.API_VERSION_V1)
 
     req:int32(num)
 
@@ -66,16 +67,16 @@ local function metadata_decode(resp)
         brokers[nodeid] = {
             host = resp:string(),
             port = resp:int32(),
+            rack = resp:nullable_string()
         }
     end
-
+    local conrtrol_id = resp:int32()
     local topic_num = resp:int32()
     local topics = new_tab(0, topic_num)
-
     for i = 1, topic_num do
         local tp_errcode = resp:int16()
         local topic = resp:string()
-
+        local is_internal  = resp:int8()
         local partition_num = resp:int32()
         local topic_info = new_tab(partition_num - 1, 3)
 
@@ -112,6 +113,7 @@ local function metadata_decode(resp)
 end
 
 
+
 local function _fetch_metadata(self, new_topic)
     local topics, num = {}, 0
     for tp, _p in pairs(self.topic_partitions) do
@@ -133,9 +135,8 @@ local function _fetch_metadata(self, new_topic)
     local req = metadata_encode(self.client_id, topics, num)
 
     for i = 1, #broker_list do
-        local host, port = broker_list[i].host, broker_list[i].port
-        local bk = broker:new(host, port, sc)
-
+        local host, port, sasl_config = broker_list[i].host, broker_list[i].port, broker_list[i].sasl_config
+        local bk = broker:new(host, port, sc, sasl_config)
         local resp, err = bk:send_receive(req)
         if not resp then
             ngx_log(INFO, "broker fetch metadata failed, err:", err,
@@ -151,6 +152,8 @@ local function _fetch_metadata(self, new_topic)
     ngx_log(ERR, "all brokers failed in fetch topic metadata")
     return nil, "all brokers failed in fetch topic metadata"
 end
+
+
 _M.refresh = _fetch_metadata
 
 
@@ -221,7 +224,6 @@ function _M.choose_broker(self, topic, partition_id)
     if not config then
         return nil, "not found broker"
     end
-
     return config
 end
 
