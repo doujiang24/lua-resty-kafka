@@ -47,15 +47,6 @@ function _M.send_receive(self, request)
     if not ok then
         return nil, err, true
     end
-<<<<<<< HEAD
-    local times, err = sock:getreusedtimes()
-    if not times then
-        return nil , err
-    end
-    if self.config.ssl and times == 0  then
-        -- TODO: add reused_session for better performance of short-lived connections
-        local _, err = sock:sslhandshake(true, self.host, self.config.ssl_verify) --reused conn
-=======
 
     local times, err = sock:getreusedtimes()
     if not times then
@@ -63,7 +54,6 @@ function _M.send_receive(self, request)
     end
     if config.ssl and times == 0  then
         local _, err = sock:sslhandshake(true, self.host, config.ssl_verify) --reused conn
->>>>>>> sasl_auth
         if err then
             return nil, "failed to do SSL handshake with " ..
                         self.host .. ":" .. tostring(self.port) .. ": " .. err, true

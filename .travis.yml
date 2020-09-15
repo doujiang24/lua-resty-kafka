@@ -26,10 +26,6 @@ env:
     -JOBS=3
     -KAFKA_VER=2.3.0
     -SCALA_VER=2.11
-<<<<<<< HEAD
-    -ZK_VER=3.5.8
-=======
->>>>>>> sasl_auth
     -OPENRESTY_VER=1.15.8.2
 
 install:
