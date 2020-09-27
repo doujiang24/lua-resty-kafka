@@ -37,12 +37,11 @@ end
 
 
 function _M.send_receive(self, request)
-    local config = self.config
     local sock, err = tcp()
     if not sock then
         return nil, err, true
     end
-    sock:settimeout(config.socket_timeout)
+    sock:settimeout(self.config.socket_timeout)
     local ok, err = sock:connect(self.host, self.port)
     if not ok then
         return nil, err, true
@@ -50,10 +49,10 @@ function _M.send_receive(self, request)
 
     local times, err = sock:getreusedtimes()
     if not times then
-        return nil , err, true
+        return nil,  "failed to get reused time: " .. tostring(err), true
     end
-    if config.ssl and times == 0  then
-        local _, err = sock:sslhandshake(true, self.host, config.ssl_verify) --reused conn
+    if self.config.ssl and times == 0  then
+        local _, err = sock:sslhandshake(false, self.host, self.config.ssl_verify) --reused conn
         if err then
             return nil, "failed to do SSL handshake with " ..
                         self.host .. ":" .. tostring(self.port) .. ": " .. err, true
@@ -68,7 +67,7 @@ function _M.send_receive(self, request)
         end
     end
     local data, err, f  = _sock_send_recieve(sock, request)
-    sock:setkeepalive(config.keepalive_timeout, config.keepalive_size)
+    sock:setkeepalive(self.config.keepalive_timeout, self.config.keepalive_size)
     return data, err, f
 end
 
@@ -97,7 +96,7 @@ function _sock_send_recieve(sock, request)
         end
         return nil, err, true
     end
-    -- sock:setkeepalive(config.keepalive_timeout, config.keepalive_size)
+
     return response:new(data, request.api_version), nil, true
 end
 
