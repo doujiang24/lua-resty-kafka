@@ -15,16 +15,18 @@ local _M = {}
 local mt = { __index = _M }
 
 function sasl_auth(sock, broker)
-    local _, err = _sasl_handshake(sock, broker)
-    if  err then
-        return err
+    local ok, err = _sasl_handshake(sock, broker)
+    if  not ok then
+        return nil, err
     end
-    local _, err = _sasl_auth(sock, broker)
-    if err then
-        return err
+
+    local ok, err = _sasl_auth(sock, broker)
+    if  not ok  then
+        return nil, err
     end
-    return
+    return 0
 end
+
 
 function _M.new(self, host, port, socket_config, sasl_config)
     return setmetatable({
@@ -41,6 +43,7 @@ function _M.send_receive(self, request)
     if not sock then
         return nil, err, true
     end
+
     sock:settimeout(self.config.socket_timeout)
     local ok, err = sock:connect(self.host, self.port)
     if not ok then
@@ -51,26 +54,28 @@ function _M.send_receive(self, request)
     if not times then
         return nil,  "failed to get reused time: " .. tostring(err), true
     end
+
     if self.config.ssl and times == 0  then
-        local _, err = sock:sslhandshake(false, self.host, self.config.ssl_verify) --reused conn
-        if err then
+        local ok, err = sock:sslhandshake(false, self.host, self.config.ssl_verify) --reused conn
+        if not ok then
             return nil, "failed to do SSL handshake with " ..
                         self.host .. ":" .. tostring(self.port) .. ": " .. err, true
         end
     end
+
     if self.auth and times == 0  then -- SASL AUTH
-        local err = sasl_auth(sock, self)
-        if  err then
+        local ok, err = sasl_auth(sock, self)
+        if  not ok then
             return nil, "failed to do " .. self.auth.mechanism .." auth with " ..
                         self.host .. ":" .. tostring(self.port) .. ": " .. err, true
 
         end
     end
+
     local data, err, f  = _sock_send_recieve(sock, request)
     sock:setkeepalive(self.config.keepalive_timeout, self.config.keepalive_size)
     return data, err, f
 end
-
 
 
 function _sock_send_recieve(sock, request)
@@ -100,26 +105,27 @@ function _sock_send_recieve(sock, request)
     return response:new(data, request.api_version), nil, true
 end
 
+
 function _sasl_handshake_decode(resp)
     local err_code =  resp:int16()
     local error_msg =  resp:string()
     if err_code ~= 0 then
-        return err_code, error_msg
-    else
-        return 0, nil
+        return nil, error_msg
     end
+    return 0
 end
+
 
 function _sasl_auth_decode(resp)
     local err_code = resp:int16()
     local error_msg  = resp:nullable_string()
     local auth_bytes  = resp:bytes()
     if err_code ~= 0 then
-        return err_code, error_msg
-    else
-        return 0, nil
+        return nil, error_msg
     end
+    return 0
 end
+
 
 function _sasl_auth(sock, brk)
     local cli_id = "worker" .. pid()
@@ -128,10 +134,9 @@ function _sasl_auth(sock, brk)
     req:bytes(msg)
     local resp, err = _sock_send_recieve(sock, req, brk.config)
     if not resp  then
-        return nil , err
-    else
-        return _sasl_auth_decode(resp)
+        return nil, err
     end
+    return _sasl_auth_decode(resp)
 end
 
 
@@ -141,10 +146,9 @@ function _sasl_handshake(sock, brk)
     req:string(brk.auth.mechanism)
     local resp, err = _sock_send_recieve(sock, req, brk.config)
     if not resp  then
-        return  nil, err
-    else
-        return _sasl_handshake_decode(resp)
+        return nil, err
     end
+    return _sasl_handshake_decode(resp)
 end
 
 

@@ -19,9 +19,7 @@ function _encode_plaintext(authz_id, user, pwd)
     if authz_id then
         msg = msg ..authz_id
     end
-    msg  = msg .. (SEP..user)
-    msg  = msg .. (SEP..pwd)
-    return msg
+    return msg .. (SEP..user)..(SEP..pwd)
 end
 
 

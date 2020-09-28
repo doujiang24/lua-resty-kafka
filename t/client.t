@@ -178,8 +178,7 @@ GET /t
 
 
 
-
-=== TEST 6: timer refresh sasl
+=== TEST 5: timer refresh sasl
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
