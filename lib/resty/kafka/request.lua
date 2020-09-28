@@ -24,6 +24,13 @@ local MESSAGE_VERSION_1 = 1
 local API_VERSION_V0 = 0
 local API_VERSION_V1 = 1
 local API_VERSION_V2 = 2
+local API_VERSION_V3 = 3
+
+
+_M.API_VERSION_V0 = 0
+_M.API_VERSION_V1 = 1
+_M.API_VERSION_V2 = 2
+_M.API_VERSION_V3 = 3
 
 _M.ProduceRequest = 0
 _M.FetchRequest = 1
@@ -32,6 +39,13 @@ _M.MetadataRequest = 3
 _M.OffsetCommitRequest = 8
 _M.OffsetFetchRequest = 9
 _M.ConsumerMetadataRequest = 10
+
+_M.SaslHandshakeRequest=17
+_M.ApiVersionsRequest=18
+_M.SaslAuthenticateRequest = 36
+
+
+
 
 
 local function str_int8(int)
@@ -67,24 +81,39 @@ local function str_int64(int)
 end
 
 
-function _M.new(self, apikey, correlation_id, client_id, api_version)
-    local c_len = #client_id
-    api_version = api_version or API_VERSION_V0
 
+local function  str_nullable_str(str)
+    if not str or #str == 0 then
+        return str_int16(-1) ,2
+    else
+        return  str ,#str
+    end
+end
+
+
+function _M.new(self, apikey, correlation_id, client_id, api_version)
+    api_version = api_version or API_VERSION_V0
+    local len = 8
+    local offset = 5
     local req = {
         0,   -- request size: int32
         str_int16(apikey),
         str_int16(api_version),
         str_int32(correlation_id),
-        str_int16(c_len),
-        client_id,
     }
+    if api_version > API_VERSION_V0  then
+        local cli_id, c_len = str_nullable_str(client_id)
+        req[5] = str_int16(c_len)
+        req[6] =  cli_id
+        len  = c_len + 10
+        offset  = 7
+    end
     return setmetatable({
         _req = req,
         api_key = apikey,
         api_version = api_version,
-        offset = 7,
-        len = c_len + 10,
+        offset = offset,
+        len = len,
     }, mt)
 end
 
@@ -133,6 +162,17 @@ function _M.string(self, str)
     self.offset = offset + 2
     self.len = self.len + 2 + str_len
 end
+
+
+
+function _M.nullable_string(self, str)
+    if not str or #str == 0 then
+        self:int16(-1)
+    else
+        self:string(str)
+    end
+end
+
 
 
 function _M.bytes(self, str)

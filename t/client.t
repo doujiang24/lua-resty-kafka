@@ -19,6 +19,10 @@ $ENV{TEST_NGINX_KAFKA_HOST} = '127.0.0.1';
 $ENV{TEST_NGINX_KAFKA_PORT} = '9092';
 $ENV{TEST_NGINX_KAFKA_SSL_PORT} = '9093';
 $ENV{TEST_NGINX_KAFKA_ERR_PORT} = '9091';
+$ENV{TEST_NGINX_KAFKA_SASL_PORT} = '9094';
+$ENV{TEST_NGINX_KAFKA_SASL_USER} = 'admin';
+$ENV{TEST_NGINX_KAFKA_SASL_PWD} = 'admin-secret';
+
 
 no_long_string();
 #no_diff();
@@ -112,6 +116,80 @@ GET /t
 
             local broker_list = {
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local messages = {
+                "halo world",
+            }
+
+            local cli = client:new(broker_list, { refresh_interval =  100 })
+            -- XXX just hack for test
+            cli.topic_partitions = { test = {}, test1 = {} }
+
+            ngx.sleep(0.5)
+
+            ngx.say(cjson.encode(cli.topic_partitions))
+        ';
+    }
+--- request
+GET /t
+--- response_body_like
+.*replicas.*
+--- no_error_log
+[error]
+
+
+
+=== TEST 4: simple fetch sasl
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+
+            local cjson = require "cjson"
+            local client = require "resty.kafka.client"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_SASL_PORT ,
+                  sasl_config = { mechanism="PLAIN", user="$TEST_NGINX_KAFKA_SASL_USER", password = "$TEST_NGINX_KAFKA_SASL_PWD" },},
+            }
+
+            local messages = {
+                "halo world",
+            }
+
+            local cli = client:new(broker_list)
+
+            local brokers, partitions = cli:fetch_metadata("test")
+            if not brokers then
+                ngx.say("fetch err:", partitions)
+                return
+            end
+
+            ngx.say(cjson.encode(partitions))
+        ';
+    }
+--- request
+GET /t
+--- response_body_like
+.*replicas.*
+--- no_error_log
+[error]
+
+
+
+=== TEST 5: timer refresh sasl
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+
+            local cjson = require "cjson"
+            local client = require "resty.kafka.client"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_SASL_PORT ,
+                sasl_config = { mechanism="PLAIN", user="$TEST_NGINX_KAFKA_SASL_USER", password = "$TEST_NGINX_KAFKA_SASL_PWD" },},
             }
 
             local messages = {
