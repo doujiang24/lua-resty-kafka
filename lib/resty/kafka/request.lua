@@ -32,6 +32,7 @@ _M.MetadataRequest = 3
 _M.OffsetCommitRequest = 8
 _M.OffsetFetchRequest = 9
 _M.ConsumerMetadataRequest = 10
+_M.ApiVersions = 18
 
 
 local function str_int8(int)
@@ -149,6 +150,7 @@ end
 
 
 local function message_package(key, msg, message_version)
+    -- Messages are not Records (or MessageSets are not RecordBatches)
     local key = key or ""
     local key_len = #key
     local len = #msg

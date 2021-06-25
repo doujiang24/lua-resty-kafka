@@ -49,7 +49,9 @@ function _M.send_receive(self, request)
         return nil, err, true
     end
 
+    -- Reading a 4 byte `message_size`
     local data, err = sock:receive(4)
+    
     if not data then
         if err == "timeout" then
             sock:close()

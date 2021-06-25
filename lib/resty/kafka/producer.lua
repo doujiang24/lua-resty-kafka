@@ -329,6 +329,31 @@ function _M.new(self, broker_list, producer_config, cluster_name)
     end
 
     local cli = client:new(broker_list, producer_config)
+
+    if opts.api_version and cli.supported_api_versions then
+        local producer_api_key = request.ProduceRequest
+        local producer_version_map = cli.supported_api_versions[producer_api_key]
+
+        -- This module only supports version 0,1,2
+        if opts.api_version > 2 then
+            local msg = "The highest supported Producer API version is 2"
+            ngx_log(ERR, msg)
+            return nil, msg
+        end
+
+        -- Validates opts.api_version against supported verion for ProducerApi
+        if opts.api_version < producer_version_map.min_version or
+           opts.api_version > producer_version_map.max_version then
+            local msg = "The Producer API version you requested (" ..
+                        opts.api_version .. ") is not supported by the this version of Kafka." ..
+                        " min_version-> " .. producer_version_map.min_version ..
+                        " max_version-> " ..  producer_version_map.max_version
+            ngx_log(ERR, msg)
+            return nil, msg
+        end
+
+    end
+
     local p = setmetatable({
         client = cli,
         correlation_id = 1,
@@ -349,6 +374,7 @@ function _M.new(self, broker_list, producer_config, cluster_name)
                         -- config in the kafka server, default 100M
     }, mt)
 
+
     if async then
         cluster_inited[name] = p
         local ok, err = timer_every((opts.flush_time or 1000) / 1000, _timer_flush, p) -- default: 1s
@@ -358,7 +384,7 @@ function _M.new(self, broker_list, producer_config, cluster_name)
 
     end
 
-    return p
+    return p, nil
 end
 
 

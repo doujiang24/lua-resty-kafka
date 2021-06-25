@@ -2,7 +2,6 @@
 
 
 local bit = require "bit"
-local request = require "resty.kafka.request"
 
 
 local setmetatable = setmetatable
