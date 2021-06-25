@@ -44,9 +44,9 @@ local function _metadata_cache(self, topic)
     return nil, "not found topic"
 end
 
-local function metadata_encode(client_id, topics, num)
+local function metadata_encode(client_id, topics, num, api_version)
     local id = 0    -- hard code correlation_id
-    local req = request:new(request.MetadataRequest, id, client_id)
+    local req = request:new(request.MetadataRequest, id, client_id, api_version)
 
     req:int32(num)
 
@@ -129,13 +129,14 @@ local function _fetch_metadata(self, new_topic)
         return nil, "not topic"
     end
 
+    local sasl_config = self.auth_config
     local broker_list = self.broker_list
     local sc = self.socket_config
     local req = metadata_encode(self.client_id, topics, num)
 
     for i = 1, #broker_list do
         local host, port = broker_list[i].host, broker_list[i].port
-        local bk = broker:new(host, port, sc)
+        local bk = broker:new(host, port, sc, sasl_config)
 
         local resp, err = bk:send_receive(req)
         if not resp then
@@ -176,11 +177,13 @@ local function _fetch_apiversions(self)
     local api_version = 0
     local req = request:new(request.ApiVersions, correlation_id, client_id, api_version)
     -- why is this necessary in metadata_encode? Not sure what the purpose is
-    --req:int32(num)
+    -- local num = 0
+    -- req:int32(num)
     local broker_list = self.broker_list
     local sc = self.socket_config
     for i = 1, #broker_list do
         local host, port = broker_list[i].host, broker_list[i].port
+        -- apiversions do not need authentication
         local bk = broker:new(host, port, sc)
 
         local resp, err = bk:send_receive(req)
@@ -228,9 +231,14 @@ function _M.new(self, broker_list, client_config)
         keepalive_timeout = opts.keepalive_timeout or 600 * 1000,   -- 10 min
         keepalive_size = opts.keepalive_size or 2,
         ssl = opts.ssl or false,
-        ssl_verify = opts.ssl_verify or false
+        ssl_verify = opts.ssl_verify or false,
+        ssl_private_key = opts.ssl_private_key or nil,
+        ssl_cert = opts.cert or nil,
+        client_cert = opts.client_cert or nil,
+        client_priv_key = opts.client_priv_key or nil,
     }
 
+    
     local cli = setmetatable({
         broker_list = broker_list,
         topic_partitions = {},
@@ -238,14 +246,18 @@ function _M.new(self, broker_list, client_config)
         supported_api_versions = {},
         client_id = "worker" .. pid(),
         socket_config = socket_config,
+        auth_config = opts.auth_config or nil
     }, mt)
 
     if opts.refresh_interval then
         meta_refresh(nil, cli, opts.refresh_interval / 1000) -- in ms
     end
 
+    -- TODO: if this is being executed whenever we create a producer, we should be caching this.
+    --       the likelyhood of this values chaning is very low which makes it a perfect candidate for
+    --       caching. Maybe set this on a ngx.timer
     -- populate `supported_api_versions` on module creation
-    _fetch_apiversions(cli)
+    -- _fetch_apiversions(cli)
 
     return cli
 end

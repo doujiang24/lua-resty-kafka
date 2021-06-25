@@ -6,32 +6,77 @@ lua-resty-kafka - Lua kafka client driver for the ngx_lua based on the cosocket 
 Table of Contents
 =================
 
-* [Name](#name)
-* [Status](#status)
-* [Description](#description)
-* [Synopsis](#synopsis)
-* [Modules](#modules)
-    * [resty.kafka.client](#restykafkaclient)
-        * [Methods](#methods)
-            * [new](#new)
-            * [fetch_metadata](#fetch_metadata)
-            * [refresh](#refresh)
-    * [resty.kafka.producer](#restykafkaproducer)
-        * [Methods](#methods)
-            * [new](#new)
-            * [send](#send)
-            * [offset](#offset)
-            * [flush](#flush)
-* [Installation](#installation)
-* [TODO](#todo)
-* [Author](#author)
-* [Copyright and License](#copyright-and-license)
-* [See Also](#see-also)
+- [Name](#name)
+- [Table of Contents](#table-of-contents)
+- [Status](#status)
+- [WIP SECTION](#wip-section)
+- [Description](#description)
+- [Synopsis](#synopsis)
+- [Modules](#modules)
+  - [resty.kafka.client](#restykafkaclient)
+    - [Methods](#methods)
+      - [new](#new)
+      - [fetch_metadata](#fetch_metadata)
+      - [refresh](#refresh)
+  - [resty.kafka.producer](#restykafkaproducer)
+    - [Methods](#methods-1)
+      - [new](#new-1)
+      - [send](#send)
+      - [offset](#offset)
+      - [flush](#flush)
+- [Installation](#installation)
+- [TODO](#todo)
+- [Author](#author)
+- [Copyright and License](#copyright-and-license)
+- [See Also](#see-also)
 
 Status
 ======
 
 This library is still under early development and is still experimental.
+
+
+
+WIP SECTION
+===========
+
+Adding random notes here:
+
+
+Modernizing the test infrastrucute so you no longer have to run openresty locally.
+
+To get a development environment running:
+
+``` shell
+cd dev/
+docker-compose -f docker-compose.dev.yaml -f docker-compose.yaml up
+```
+
+This adds a `openresty` container that exposes the the route '/test' on port 8080
+which is configured to send a message to a kafka topic.
+
+From your host run:
+
+``` shell
+http :8080/test
+```
+
+And you should see messages being sent to Kafka
+
+To run the tests using `prove`:
+
+``` shell
+
+cd dev/
+docker-compose -f docker-compose.test.yaml -f docker-compose.yaml up
+```
+
+This runs the tests in tests/t (currently only t/client.t). The tests/t directory is mounted into the container. You can edit these files and trigger a testrun with
+
+``` shell
+docker-compose -f docker-compose.test.yaml -f docker-compose.yaml up tests
+```
+
 
 Description
 ===========

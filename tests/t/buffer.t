@@ -14,8 +14,8 @@ our $HttpConfig = qq{
     lua_package_cpath "/usr/local/openresty-debug/lualib/?.so;/usr/local/openresty/lualib/?.so;;";
 };
 
-$ENV{TEST_NGINX_RESOLVER} = '8.8.8.8';
-$ENV{TEST_NGINX_KAFKA_HOST} = '127.0.0.1';
+$ENV{TEST_NGINX_RESOLVER} = '127.0.0.11';
+$ENV{TEST_NGINX_KAFKA_HOST} = 'broker';
 $ENV{TEST_NGINX_KAFKA_PORT} = '9092';
 $ENV{TEST_NGINX_KAFKA_ERR_PORT} = '9091';
 
@@ -30,6 +30,7 @@ __DATA__
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
             local cjson = require "cjson"
             local producer = require "resty.kafka.producer"
@@ -82,6 +83,7 @@ send num:1
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
             local cjson = require "cjson"
             local producer = require "resty.kafka.producer"
@@ -121,6 +123,7 @@ offset bigger than 0: true
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
             local cjson = require "cjson"
             local producer = require "resty.kafka.producer"
@@ -165,6 +168,7 @@ send num:0
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
             local cjson = require "cjson"
             local producer = require "resty.kafka.producer"
@@ -206,6 +210,7 @@ send ok:true
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
             local cjson = require "cjson"
             local producer = require "resty.kafka.producer"
@@ -249,6 +254,7 @@ send ok:true
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
             ngx.req.read_body();
             local body = ngx.req.get_body_data();

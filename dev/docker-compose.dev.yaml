@@ -1,0 +1,17 @@
+version: '2.1'
+services:
+  openresty:
+    build: openresty/
+    hostname: test
+    ports:
+      - "8080:8081"
+    volumes:
+      - ../../lua-resty-kafka:/usr/local/lib/lua/lua-resty-kafka
+      - ./openresty/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf
+      - ./openresty/nginx.conf.d/:/usr/local/openresty/nginx/conf/conf.d/
+      - ./keystore/combined.key:/certs/combined.crt
+      - ./keystore/privkey.key:/certs/privkey.key
+      - ./keystore/certchain.crt:/certs/certchain.crt
+    networks:
+      kafka:
+

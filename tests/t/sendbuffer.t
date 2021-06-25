@@ -14,8 +14,7 @@ our $HttpConfig = qq{
     lua_package_cpath "/usr/local/openresty-debug/lualib/?.so;/usr/local/openresty/lualib/?.so;;";
 };
 
-$ENV{TEST_NGINX_RESOLVER} = '8.8.8.8';
-$ENV{TEST_NGINX_KAFKA_HOST} = '127.0.0.1';
+$ENV{TEST_NGINX_KAFKA_HOST} = 'broker';
 $ENV{TEST_NGINX_KAFKA_PORT} = '9092';
 $ENV{TEST_NGINX_KAFKA_ERR_PORT} = '9091';
 
@@ -30,6 +29,7 @@ __DATA__
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
             local sendbuffer = require "resty.kafka.sendbuffer"
             local buffer = sendbuffer:new(2, 20)
@@ -60,6 +60,7 @@ overflow:true
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
             local sendbuffer = require "resty.kafka.sendbuffer"
             local buffer = sendbuffer:new(2, 20)
@@ -96,6 +97,7 @@ offset:101
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
             local sendbuffer = require "resty.kafka.sendbuffer"
             local buffer = sendbuffer:new(2, 20)
@@ -143,6 +145,7 @@ used:1
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
             local sendbuffer = require "resty.kafka.sendbuffer"
             local buffer = sendbuffer:new(2, 20)
@@ -174,6 +177,7 @@ topic:test2; partition_id:1
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
             local sendbuffer = require "resty.kafka.sendbuffer"
             local client = require "resty.kafka.client"

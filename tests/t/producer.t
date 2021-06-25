@@ -14,8 +14,7 @@ our $HttpConfig = qq{
     lua_package_cpath "/usr/local/openresty-debug/lualib/?.so;/usr/local/openresty/lualib/?.so;;";
 };
 
-$ENV{TEST_NGINX_RESOLVER} = '8.8.8.8';
-$ENV{TEST_NGINX_KAFKA_HOST} = '127.0.0.1';
+$ENV{TEST_NGINX_KAFKA_HOST} = 'broker';
 $ENV{TEST_NGINX_KAFKA_PORT} = '9092';
 $ENV{TEST_NGINX_KAFKA_SSL_PORT} = '9093';
 $ENV{TEST_NGINX_KAFKA_ERR_PORT} = '9091';
@@ -31,6 +30,7 @@ __DATA__
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
 
             local cjson = require "cjson"
@@ -66,6 +66,7 @@ GET /t
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
 
             local cjson = require "cjson"
@@ -101,6 +102,7 @@ GET /t
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
 
             local cjson = require "cjson"
@@ -136,6 +138,7 @@ GET /t
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
 
             local cjson = require "cjson"
@@ -178,6 +181,7 @@ offset diff: 1
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
 
             local cjson = require "cjson"
@@ -220,6 +224,7 @@ two topic successed!
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua '
 
             local cjson = require "cjson"
@@ -262,6 +267,7 @@ send err:not found partition
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
+        resolver 127.0.0.11;
         content_by_lua_block {
 
             local cjson = require "cjson"
