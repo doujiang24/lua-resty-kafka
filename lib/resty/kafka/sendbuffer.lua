@@ -151,7 +151,6 @@ function _M.aggregator(self, client)
     for topic, partition_id, queue in self:loop() do
         if queue.retryable then
             local broker_conf, err = client:choose_broker(topic, partition_id)
-            ngx.say("broker_conf -> " .. broker_conf)
             if not broker_conf then
                 self:err(topic, partition_id, err, true)
 

@@ -72,7 +72,8 @@ function _M.send_receive(self, request)
         end
     end
 
-    if self.auth then -- SASL AUTH
+    -- authenticate only if it is a new socket connection
+    if self.auth and sock:getreusedtimes() == 0 then -- SASL AUTH
         local ok, err = sasl_auth(sock, self)
         if not ok then
             local msg = "failed to do " .. self.auth.mechanism .." auth with " ..

@@ -152,7 +152,6 @@ end
 local function _send(self, broker_conf, topic_partitions)
     local sendbuffer = self.sendbuffer
     local resp, retryable = nil, true
-    ngx.say("broker_conf = " .. require("inspect")(broker_conf))
 
     local bk, err = broker:new(broker_conf.host, broker_conf.port, self.socket_config, self.auth_config)
     if bk then
@@ -330,7 +329,6 @@ function _M.new(self, broker_list, producer_config, cluster_name)
     end
 
     local cli = client:new(broker_list, opts)
-    ngx.say("producer creating cli = " .. require("inspect")(cli))
 
     if opts.api_version and cli.supported_api_versions then
         local producer_api_key = request.ProduceRequest
@@ -376,8 +374,6 @@ function _M.new(self, broker_list, producer_config, cluster_name)
                         -- batch_size should less than (MaxRequestSize / 2 - 10KiB)
                         -- config in the kafka server, default 100M
     }, mt)
-    ngx.say("p = " .. require("inspect")(p))
-
 
     if async then
         cluster_inited[name] = p
