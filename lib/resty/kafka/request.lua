@@ -80,7 +80,6 @@ end
 function _M.new(self, apikey, correlation_id, client_id, api_version)
     local c_len = #client_id
     api_version = api_version or self.API_VERSION_V0
-    ngx.say("Issueing API_KEY -> " .. apikey .. " with api_version -> " .. tostring(api_version))
     local len = 8
     local offset = 5
 

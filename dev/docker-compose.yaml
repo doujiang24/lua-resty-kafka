@@ -84,7 +84,6 @@ services:
       - ./credentials:/etc/kafka/secrets/
       - ./client.config:/etc/kafka/client.config
       - ./broker-config/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
-      # - ./log4j.properties:/etc/kafka/log4j.properties
 
   rest-proxy:
     image: confluentinc/cp-kafka-rest:6.2.0

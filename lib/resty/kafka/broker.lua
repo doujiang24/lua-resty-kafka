@@ -115,9 +115,7 @@ function _sock_send_recieve(sock, request)
         end
     end
 
-    ngx.say("Reading back response with api_version -> " .. request.api_version)
     return response:new(data, request.api_version), nil, true
-
 end
 
 
