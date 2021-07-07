@@ -64,7 +64,7 @@ services:
       KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ''
 
       # 'required' for mTLS
-      KAFKA_SSL_CLIENT_AUTH: 'none'
+      KAFKA_SSL_CLIENT_AUTH: 'required'
 
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
 

@@ -1,0 +1,8 @@
+return {
+  default = {
+    lua = "./resty_runner.lua",
+    verbose = true,
+    coverage = false,
+    output = "gtest",
+  },
+}

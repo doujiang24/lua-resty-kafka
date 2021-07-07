@@ -29,6 +29,9 @@ RUN  wget https://openresty.org/download/openresty-1.19.3.2.tar.gz \
 
 RUN cpan -i Test::Nginx::Socket
 
+RUN luarocks install busted 
+RUN luarocks install inspect
+
 COPY ./test-container-init.sh /srv
 
 ENV PATH $PATH:/usr/local/openresty/nginx/sbin
@@ -39,7 +42,6 @@ WORKDIR /srv
 
 ENTRYPOINT [ "./test-container-init.sh" ]
 
-# TODO: remove client.t when done with testing
-CMD [ "prove", "-v", "-r", "t/" ]
+# CMD [ "prove", "-v", "-r", "t/" ]
 
 
