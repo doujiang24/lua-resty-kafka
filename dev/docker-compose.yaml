@@ -57,7 +57,7 @@ services:
       KAFKA_SASL_ENABLED_MECHANISMS: SASL_PLAIN,PLAIN
       KAFKA_SASL_MECHANISMS: PLAIN
 
-      KAFKA_SECURITY_INTER_BROKER_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_SECURITY_INTER_BROKER_PROTOCOL: SASL_SSL
 
       # KAFKA_SECURITY_INTER_BROKER_PROTOCOL: SSL
       # Ignores name resolution
@@ -72,7 +72,6 @@ services:
       # KAFKA_SSL_CLIENT_AUTH: requested
 
       # Enables tcp lib level debugging
-      # KAFKA_OPTS: -Djavax.net.debug=all -Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf
       KAFKA_OPTS: "-Djavax.net.debug=all -Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
 
 
