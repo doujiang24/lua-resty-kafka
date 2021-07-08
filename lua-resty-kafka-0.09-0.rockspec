@@ -32,6 +32,7 @@ build = {
       ["resty.kafka.response"] = "lib/resty/kafka/response.lua",
       ["resty.kafka.ringbuffer"] = "lib/resty/kafka/ringbuffer.lua",
       ["resty.kafka.sendbuffer"] = "lib/resty/kafka/sendbuffer.lua",
-      ["resty.kafka.sasl"] = "lib/resty/kafka/sasl.lua"
+      ["resty.kafka.auth"] = "lib/resty/kafka/auth/init.lua",
+      ["resty.kafka.auth.strategies.sasl"] = "lib/resty/kafka/auth/strategies/sasl.lua",
    }
 }

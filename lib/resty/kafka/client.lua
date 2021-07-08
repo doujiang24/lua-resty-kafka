@@ -129,14 +129,13 @@ local function _fetch_metadata(self, new_topic)
         return nil, "not topic"
     end
 
-    local sasl_config = self.auth_config
     local broker_list = self.broker_list
     local sc = self.socket_config
     local req = metadata_encode(self.client_id, topics, num)
 
     for i = 1, #broker_list do
         local host, port = broker_list[i].host, broker_list[i].port
-        local bk = broker:new(host, port, sc, sasl_config)
+        local bk = broker:new(host, port, sc, self.auth_config)
 
         local resp, err = bk:send_receive(req)
         if not resp then
