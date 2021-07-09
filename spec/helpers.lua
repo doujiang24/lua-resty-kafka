@@ -1,7 +1,22 @@
 local ssl = require("ngx.ssl")
-local client = require "resty.kafka.client"
+local producer = require "resty.kafka.producer"
 local request = require "resty.kafka.request"
 local response = require "resty.kafka.response"
+
+local broker_list_plain = {
+	{ host = "broker", port = 9092 },
+}
+
+-- define topics, keys and messages etc.
+TEST_TOPIC = "test"
+TEST_TOPIC_1 = "test1"
+KEY = "key"
+MESSAGE = "message"
+CERT = cert
+PRIV_KEY = priv_key
+BROKER_LIST = broker_list_plain
+
+
 
 -- Load certificate
 local f = assert(io.open("/certs/certchain.crt"))
@@ -40,28 +55,14 @@ function compare(func, number)
     return tostring(number), number == cnumber
 end
 
-local broker_list_plain = {
-	{ host = "broker", port = 9092 },
-}
 
 -- Create topics before running the tests
-local function create_topics()
-    local cli = client:new(broker_list_plain)
+function create_topics()
     -- Not interested in the output
-    cli:fetch_metadata(TEST_TOPIC)
-    cli:fetch_metadata(TEST_TOPIC_1)
+    local p = producer:new(broker_list_plain)
+    p:send(TEST_TOPIC, KEY, MESSAGE)
+    p:send(TEST_TOPIC_1, KEY, MESSAGE)
 end
-create_topics()
-
-
--- define topics, keys and messages etc.
-TEST_TOPIC = "test"
-TEST_TOPIC_1 = "test1"
-KEY = "key"
-MESSAGE = "message"
-CERT = cert
-PRIV_KEY = priv_key
-BROKER_LIST = broker_list_plain
 
 return {
 	convert_to_hex = convert_to_hex,

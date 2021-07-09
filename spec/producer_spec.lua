@@ -6,7 +6,11 @@ local message = MESSAGE
 
 -- FIXME: Although kafka is configured to setup topics on request, the first test will fail as the topic isn't created yet
 -- The next request will work though. Maybe setup a `fake` request to all the topics used in this tests to set them up.
-describe("TODO", function()
+describe("Test producers", function()
+
+  before_each(function()
+      create_topics()
+  end)
 
   it("sends two messages and the offset is one apart", function()
     local p, err = producer:new(broker_list_plain)

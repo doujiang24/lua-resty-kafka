@@ -20,6 +20,7 @@ describe("Testing sasl ssl client", function()
 
   before_each(function()
       cli = client:new(broker_list_sasl_ssl, client_config_sasl_ssl)
+      create_topics()
   end)
 
   it("to build the metatable correctly", function()

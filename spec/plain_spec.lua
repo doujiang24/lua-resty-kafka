@@ -15,6 +15,7 @@ describe("Testing plain client", function()
 
   before_each(function()
       cli = client:new(broker_list_plain)
+      create_topics()
     end)
 
   it("to build the metatable correctly", function()
@@ -47,6 +48,7 @@ describe("Testing plain client with a bad broker in the bootstrap list", functio
 
   before_each(function()
       cli = client:new(broker_list_plain_bad_broker)
+      create_topics()
     end)
 
   it("to build the metatable correctly", function()

@@ -10,10 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup the environment
-        working-directory: ./dev
-        run: docker-compose -f docker-compose.yaml  -f docker-compose.dev.yaml up -d
+        run: docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml up -d
       - name: Run busted tests
-        working-directory: ./dev
-        shell: 'script -q -e -c "bash --noprofile --norc -eo pipefail {0}"'
-        run: |
-          docker-compose -f docker-compose.yaml  -f docker-compose.dev.yaml exec openresty busted
+        run: docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml exec openresty busted

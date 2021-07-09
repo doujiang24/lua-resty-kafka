@@ -14,6 +14,7 @@ describe("Testing mtls client", function()
 
   before_each(function()
       cli = client:new(broker_list_mtls, client_config_mtls)
+      create_topics()
     end)
 
   it("to build the metatable correctly", function()

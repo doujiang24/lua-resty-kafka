@@ -18,6 +18,7 @@ describe("Testing sasl plain client", function()
 
   before_each(function()
       cli = client:new(broker_list_sasl, client_config_sasl_plain)
+      create_topics()
   end)
 
   it("to build the metatable correctly", function()
