@@ -11,7 +11,6 @@ RUN    sed 's/main$/main universe/' -i /etc/apt/sources.list
 RUN    apt-get update
 RUN    apt-get upgrade -y
 RUN    apt-get -y install wget vim git libpq-dev tcpdump luarocks
-RUN    luarocks install inspect
 
 # Openresty (Nginx)
 RUN  apt-get -y build-dep nginx \
@@ -27,13 +26,19 @@ RUN  wget https://openresty.org/download/openresty-1.19.3.2.tar.gz \
   && make \
   && make install 
 
+
+ENV PATH $PATH:/usr/local/openresty/nginx/sbin
 RUN ln -s /usr/local/openresty/nginx/sbin/nginx /usr/sbin/nginx
 COPY ./reload_nginx.sh /usr/local/openresty/bin/nginxReloader.sh
 COPY ./docker-entrypoint.sh /usr/local/openresty/bin/docker-entrypoint.sh
 
+RUN luarocks install busted 
+RUN luarocks install inspect
+
 RUN chmod +x /usr/local/openresty/bin/nginxReloader.sh
 RUN chmod +x /usr/local/openresty/bin/docker-entrypoint.sh
 
+WORKDIR /usr/local/lib/lua/lua-resty-kafka
 
 ENTRYPOINT [ "/usr/local/openresty/bin/docker-entrypoint.sh" ]
 CMD ["/usr/local/openresty/bin/openresty", "-g", "daemon off;"]

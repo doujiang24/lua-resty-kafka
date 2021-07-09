@@ -2,6 +2,7 @@ version: '2.1'
 services:
   openresty:
     build: openresty/
+    container_name: dev_openresty
     hostname: test
     ports:
       - "8080:8081"

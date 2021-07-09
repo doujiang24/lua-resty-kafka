@@ -1,0 +1,10 @@
+return {
+  default = {
+    lua = "spec/resty_runner.lua",
+    verbose = true,
+    lpath = "/usr/local/lib/lua/lua-resty-kafka/lib/?.lua;./usr/local/lib/lua/lua-resty-kafka/lib/?/?/auth/init.lua;",
+    coverage = false,
+    output = "gtest",
+    helper = "spec/helpers.lua",
+  }
+}
