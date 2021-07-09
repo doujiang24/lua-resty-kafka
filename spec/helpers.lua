@@ -1,4 +1,5 @@
 local ssl = require("ngx.ssl")
+local client = require "resty.kafka.client"
 local request = require "resty.kafka.request"
 local response = require "resty.kafka.response"
 
@@ -42,6 +43,16 @@ end
 local broker_list_plain = {
 	{ host = "broker", port = 9092 },
 }
+
+-- Create topics before running the tests
+local function create_topics()
+    local cli = client:new(broker_list_plain)
+    -- Not interested in the output
+    cli:fetch_metadata(TEST_TOPIC)
+    cli:fetch_metadata(TEST_TOPIC_1)
+end
+create_topics()
+
 
 -- define topics, keys and messages etc.
 TEST_TOPIC = "test"
