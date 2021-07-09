@@ -1,0 +1,18 @@
+version: '2.1'
+services:
+  tests:
+    build: ../tests/
+    container_name: tests
+    depends_on:
+      rest-proxy:
+        condition: service_healthy
+    volumes:
+      - '../../lua-resty-kafka:/srv/lib'
+      - '../tests/t:/srv/t'
+      - '../spec:/spec'
+      - ./keystore/combined.key:/certs/combined.crt
+      - ./keystore/privkey.key:/certs/privkey.key
+      - ./keystore/certchain.crt:/certs/certchain.crt
+    networks:
+      kafka:
+    command: tail -f /spec/.busted

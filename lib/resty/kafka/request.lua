@@ -21,9 +21,9 @@ local MESSAGE_VERSION_0 = 0
 local MESSAGE_VERSION_1 = 1
 
 
-local API_VERSION_V0 = 0
-local API_VERSION_V1 = 1
-local API_VERSION_V2 = 2
+_M.API_VERSION_V0 = 0
+_M.API_VERSION_V1 = 1
+_M.API_VERSION_V2 = 2
 
 _M.ProduceRequest = 0
 _M.FetchRequest = 1
@@ -32,6 +32,10 @@ _M.MetadataRequest = 3
 _M.OffsetCommitRequest = 8
 _M.OffsetFetchRequest = 9
 _M.ConsumerMetadataRequest = 10
+_M.ApiVersions = 18
+_M.SaslHandshakeRequest=17
+_M.SaslAuthenticateRequest = 36
+
 
 
 local function str_int8(int)
@@ -53,6 +57,13 @@ local function str_int32(int)
                 band(int, 0xff))
 end
 
+local function str_nullable_str(str)
+    if not str or #str == 0 then
+        return str_int16(-1) ,2
+    else
+        return  str ,#str
+    end
+end
 
 -- XX int can be cdata: LL or lua number
 local function str_int64(int)
@@ -66,10 +77,11 @@ local function str_int64(int)
                 tonumber(band(int, 0xff)))
 end
 
-
 function _M.new(self, apikey, correlation_id, client_id, api_version)
     local c_len = #client_id
-    api_version = api_version or API_VERSION_V0
+    api_version = api_version or self.API_VERSION_V0
+    local len = 8
+    local offset = 5
 
     local req = {
         0,   -- request size: int32
@@ -79,6 +91,14 @@ function _M.new(self, apikey, correlation_id, client_id, api_version)
         str_int16(c_len),
         client_id,
     }
+    if api_version == self.API_VERSION_V1  then
+        local cli_id, c_len = str_nullable_str(client_id)
+        req[5] = str_int16(c_len)
+        req[6] =  cli_id
+        len  = len
+        offset  = offset
+    end
+
     return setmetatable({
         _req = req,
         api_key = apikey,
@@ -149,6 +169,7 @@ end
 
 
 local function message_package(key, msg, message_version)
+    -- Messages are not Records (or MessageSets are not RecordBatches)
     local key = key or ""
     local key_len = #key
     local len = #msg

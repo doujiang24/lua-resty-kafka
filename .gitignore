@@ -1,1 +1,6 @@
-t/servroot
+tests/t/servroot/*
+
+dev/keystore
+dev/truststore
+
+.vscode

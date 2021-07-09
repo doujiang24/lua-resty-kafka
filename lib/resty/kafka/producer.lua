@@ -62,7 +62,7 @@ end
 
 local function produce_encode(self, topic_partitions)
     local req = request:new(request.ProduceRequest,
-                            correlation_id(self), self.client.client_id, self.api_version)
+                            correlation_id(self), self.client.client_id, request.API_VERSION_V1)
 
     req:int16(self.required_acks)
     req:int32(self.request_timeout)
@@ -153,7 +153,7 @@ local function _send(self, broker_conf, topic_partitions)
     local sendbuffer = self.sendbuffer
     local resp, retryable = nil, true
 
-    local bk, err = broker:new(broker_conf.host, broker_conf.port, self.socket_config)
+    local bk, err = broker:new(broker_conf.host, broker_conf.port, self.socket_config, self.auth_config)
     if bk then
         local req = produce_encode(self, topic_partitions)
 
@@ -328,7 +328,32 @@ function _M.new(self, broker_list, producer_config, cluster_name)
         return cluster_inited[name]
     end
 
-    local cli = client:new(broker_list, producer_config)
+    local cli = client:new(broker_list, opts)
+
+    if opts.api_version and cli.supported_api_versions then
+        local producer_api_key = request.ProduceRequest
+        local producer_version_map = cli.supported_api_versions[producer_api_key]
+
+        -- This module only supports version 0,1,2
+        if opts.api_version > 2 then
+            local msg = "The highest supported Producer API version is 2"
+            ngx_log(ERR, msg)
+            return nil, msg
+        end
+
+        -- Validates opts.api_version against supported verion for ProducerApi
+        if opts.api_version < producer_version_map.min_version or
+           opts.api_version > producer_version_map.max_version then
+            local msg = "The Producer API version you requested (" ..
+                        opts.api_version .. ") is not supported by the this version of Kafka." ..
+                        " min_version-> " .. producer_version_map.min_version ..
+                        " max_version-> " ..  producer_version_map.max_version
+            ngx_log(ERR, msg)
+            return nil, msg
+        end
+
+    end
+
     local p = setmetatable({
         client = cli,
         correlation_id = 1,
@@ -341,6 +366,7 @@ function _M.new(self, broker_list, producer_config, cluster_name)
         api_version = opts.api_version or API_VERSION_V0,
         async = async,
         socket_config = cli.socket_config,
+        auth_config = cli.auth_config,
         _timer_flushing_buffer = false,
         ringbuffer = ringbuffer:new(opts.batch_num or 200, opts.max_buffering or 50000),   -- 200, 50K
         sendbuffer = sendbuffer:new(opts.batch_num or 200, opts.batch_size or 1048576)
@@ -358,7 +384,7 @@ function _M.new(self, broker_list, producer_config, cluster_name)
 
     end
 
-    return p
+    return p, nil
 end
 
 
