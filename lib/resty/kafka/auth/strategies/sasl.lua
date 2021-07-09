@@ -56,9 +56,6 @@ function _sasl_handshake_decode(resp)
     -- read this like I did with the supported api versions thing
     local err_code =  resp:int16()
     local mechanisms =  resp:string()
-    ngx.say("Decoding sasl handshake response -> ")
-    ngx.say("err_code -> " .. err_code)
-    ngx.say("mechanisms -> " .. mechanisms)
     if err_code ~= 0 then
         return err_code, mechanisms
     end
@@ -69,10 +66,7 @@ end
 function _sasl_auth_decode(resp)
     local err_code = resp:int16()
     local error_msg  = resp:nullable_string()
-    ngx.say("sasl auth decode, error_code " .. err_code)
-    ngx.say("sasl auth decode, error_message " .. error_msg)
     local auth_bytes  = resp:bytes()
-    ngx.say("sasl auth decode, auth_bytes " .. auth_bytes)
     if err_code ~= 0 then
         return nil, error_msg
     end
@@ -84,19 +78,14 @@ function _sasl_auth(self, sock)
     local cli_id = "worker" .. pid()
     local req = request:new(request.SaslAuthenticateRequest, 0, cli_id, request.API_VERSION_V1)
     local mechanism = self.config.mechanism
-    ngx.say("Authenticating with mechanism -> " .. mechanism)
     local user = self.config.user
-    ngx.say("Authenticating with user -> " .. user)
     local password = self.config.password
-    ngx.say("Authenticating with pwd-> " .. password)
     local msg = _encode(mechanism, user, password)
     req:bytes(msg)
     local resp, err = _sock_send_receive(sock, req)
     if not resp  then
-        ngx.say("Authentication failed with " .. err)
         return nil, err
     end
-    ngx.say("Authentication succeeded, decoding sasl_auth response")
     local rc, err = _sasl_auth_decode(resp)
     if not rc then
         if err then
@@ -115,10 +104,8 @@ function _sasl_handshake(self, sock)
     local req = request:new(request.SaslHandshakeRequest, 0, cli_id, api_version)
     local mechanism = self.config.mechanism
     req:string(mechanism)
-    ngx.say("Requesting handshake for mechanism -> " .. mechanism)
     local resp, err = _sock_send_receive(sock, req)
     if not resp  then
-        ngx.say("No response from sock_send_receive -> " .. err)
         return nil, err
     end
     local rc, mechanism = _sasl_handshake_decode(resp)
@@ -142,7 +129,6 @@ function _M:authenticate(sock)
     local ok, err = _sasl_handshake(self, sock)
     if not ok then
         if err then
-            ngx.say("sasl handshake failed -> See list of supported Mechanisms: " .. err)
             return nil, err
         end
         return nil, "Unkown Error"
