@@ -1,0 +1,17 @@
+name: Docker Compose Actions Workflow
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup the environment
+        working-directory: ./dev
+        run: docker-compose -f docker-compose.yaml  -f docker-compose.dev.yaml up -d
+      - name: Run busted tests
+        working-directory: ./dev
+        run: docker-compose -f docker-compose.yaml  -f docker-compose.dev.yaml exec openresty busted
