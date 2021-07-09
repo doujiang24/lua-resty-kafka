@@ -14,4 +14,6 @@ jobs:
         run: docker-compose -f docker-compose.yaml  -f docker-compose.dev.yaml up -d
       - name: Run busted tests
         working-directory: ./dev
-        run: docker-compose -f docker-compose.yaml  -f docker-compose.dev.yaml exec openresty busted
+        shell: 'script -q -e -c "bash --noprofile --norc -eo pipefail {0}"'
+        run: |
+          docker-compose -f docker-compose.yaml  -f docker-compose.dev.yaml exec openresty busted
