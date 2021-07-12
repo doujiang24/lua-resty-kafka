@@ -18,8 +18,4 @@ jobs:
         run: docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml up -d
       - name: Run busted tests
         shell: 'script -q -e -c "bash --noprofile --norc -eo pipefail {0}"'
-        # Really stupid workaround to avoid issues with healthchecks for rest-proxy
-        # FIXME!
-        run: |
-          sleep 30s
-          docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml exec openresty busted
+        run: docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml exec openresty busted
