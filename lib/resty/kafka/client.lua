@@ -227,8 +227,6 @@ function _M.new(self, broker_list, client_config)
         keepalive_size = opts.keepalive_size or 2,
         ssl = opts.ssl or false,
         ssl_verify = opts.ssl_verify or false,
-        ssl_private_key = opts.ssl_private_key or nil,
-        ssl_cert = opts.cert or nil,
         client_cert = opts.client_cert or nil,
         client_priv_key = opts.client_priv_key or nil,
     }

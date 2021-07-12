@@ -1,7 +1,7 @@
 local ringbuffer = require "resty.kafka.ringbuffer"
 local sendbuffer = require "resty.kafka.sendbuffer"
 
-describe("TODO", function()
+describe("Test buffers: ", function()
   it("overflow sendbuffer", function()
     local buffer = sendbuffer:new(2, 20)
 

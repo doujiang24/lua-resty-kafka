@@ -4,8 +4,6 @@ local broker_list_plain = BROKER_LIST
 local key = KEY
 local message = MESSAGE
 
--- FIXME: Although kafka is configured to setup topics on request, the first test will fail as the topic isn't created yet
--- The next request will work though. Maybe setup a `fake` request to all the topics used in this tests to set them up.
 describe("Test producers: ", function()
 
   before_each(function()

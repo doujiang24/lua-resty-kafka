@@ -8,8 +8,7 @@ Table of Contents
 
 - [Name](#name)
 - [Table of Contents](#table-of-contents)
-- [Status](#status)
-- [WIP SECTION](#wip-section)
+- [Preface](#preface)
 - [Description](#description)
 - [Synopsis](#synopsis)
 - [Modules](#modules)
@@ -25,58 +24,26 @@ Table of Contents
       - [offset](#offset)
       - [flush](#flush)
 - [Installation](#installation)
-- [TODO](#todo)
+- [Development](#development)
+- [Testing](#testing)
 - [Author](#author)
 - [Copyright and License](#copyright-and-license)
 - [See Also](#see-also)
 
-Status
-======
 
-This library is still under early development and is still experimental.
+Preface
+=======
 
+This library was forked from [doujiang24/lua-resty-kafka](https://github.com/doujiang24/lua-resty-kafka) and
+comes with a set of additional features.
 
+* mTLS support
+* SASL support
+  * PLAIN
 
-WIP SECTION
-===========
+For these features to work you need a patched version of openresty. [See this source](https://github.com/Kong/kong-build-tools/tree/master/openresty-patches/patches/1.19.3.2)
 
-Adding random notes here:
-
-
-Modernizing the test infrastrucute so you no longer have to run openresty locally.
-
-To get a development environment running:
-
-``` shell
-cd dev/
-docker-compose -f docker-compose.dev.yaml -f docker-compose.yaml up
-```
-
-This adds a `openresty` container that exposes the the route '/test' on port 8080
-which is configured to send a message to a kafka topic.
-
-From your host run:
-
-``` shell
-http :8080/test
-```
-
-And you should see messages being sent to Kafka
-
-To run the tests using `prove`:
-
-``` shell
-
-cd dev/
-docker-compose -f docker-compose.test.yaml -f docker-compose.yaml up
-```
-
-This runs the tests in tests/t (currently only t/client.t). The tests/t directory is mounted into the container. You can edit these files and trigger a testrun with
-
-``` shell
-docker-compose -f docker-compose.test.yaml -f docker-compose.yaml up tests
-```
-
+The test environment that comes with this repository provides a patched version of openresty. [See the development part of this README](#Development).
 
 Description
 ===========
@@ -100,7 +67,7 @@ Synopsis
 
     server {
         location /test {
-            content_by_lua '
+            content_by_lua_block {
                 local cjson = require "cjson"
                 local client = require "resty.kafka.client"
                 local producer = require "resty.kafka.producer"
@@ -108,9 +75,6 @@ Synopsis
                 local broker_list = {
                     { host = "127.0.0.1", port = 9092 },
                 }
-
-                local key = "key"
-                local message = "halo world"
 
                 -- usually we do not use this library directly
                 local cli = client:new(broker_list)
@@ -120,6 +84,8 @@ Synopsis
                 end
                 ngx.say("brokers: ", cjson.encode(brokers), "; partitions: ", cjson.encode(partitions))
 
+                local key = "key"
+                local message = "halo world"
 
                 -- sync producer_type
                 local p = producer:new(broker_list)
@@ -141,10 +107,11 @@ Synopsis
                 end
 
                 ngx.say("send success, ok:", ok)
-            ';
+            };
         }
     }
 ```
+
 
 
 [Back to TOC](#table-of-contents)
@@ -159,7 +126,7 @@ resty.kafka.client
 To load this module, just do this
 
 ```lua
-    local client = require "resty.kafka.client"
+local client = require "resty.kafka.client"
 ```
 
 [Back to TOC](#table-of-contents)
@@ -172,7 +139,7 @@ To load this module, just do this
 
 The `broker_list` is a list of broker, like the below
 
-```json
+```lua
 [
     {
         "host": "127.0.0.1",
@@ -209,6 +176,30 @@ client config
 
     Specifies if client should perform SSL verification. Defaults to false. See: https://github.com/openresty/lua-nginx-module#tcpsocksslhandshake
 
+* `client_cert`
+
+    Specifies the clients ssl certificate used for mTLS authentication.
+    See: https://github.com/openresty/lua-resty-core/blob/master/lib/ngx/ssl.md#parse_pem_cert
+
+* `client_priv_key`
+
+    Specifies the clients private key used for mTLS authentication.
+    See: https://github.com/openresty/lua-resty-core/blob/master/lib/ngx/ssl.md#parse_pem_priv_key
+
+* `auth_config`
+
+    A lua table value that specifies authentication settings:
+    ```lua
+
+        local auth_config = { 
+            strategy = "sasl", 
+            mechanism="PLAIN", 
+            user="admin", 
+            password="admin-secret"
+            }
+    ```
+    All seen fields are required. Note that only SASL/PLAIN is currently supported.
+
 [Back to TOC](#table-of-contents)
 
 #### fetch_metadata
@@ -216,6 +207,8 @@ client config
 
 In case of success, return the all brokers and partitions of the `topic`.
 In case of errors, returns `nil` with a string describing the error.
+This also automatically populates `client.supported_apiversions` and prevents
+you from using api versions that are not supported by the Kafka version you're running with.
 
 
 [Back to TOC](#table-of-contents)
@@ -391,24 +384,45 @@ tree to ngx_lua's LUA_PATH search path, as in
 Ensure that the system account running your Nginx ''worker'' proceses have
 enough permission to read the `.lua` file.
 
-
 [Back to TOC](#table-of-contents)
 
-TODO
-====
+Development
+===========
 
-1.  Fetch API
-2.  Offset API
-3.  Offset Commit/Fetch API
+To get a working development environment run
 
+`make devup`
 
-[Back to TOC](#table-of-contents)
+This will spin up a `kafka, zookeeper, resty-proxy` alongside a `openresty` container that can be used for quick development and testing.
+
+In order to drop to a shell(in the openresty container) run:
+
+`make devshell`
+
+Testing
+=======
+
+You can run tests with
+
+`make test`
+
+or 
+
+`make devshell`
+
+from here on, you can run `busted` to trigger the tests.
 
 Author
 ======
 
-Dejiang Zhu (doujiang24) <doujiang24@gmail.com>.
+Original Author:
 
+ *  Dejiang Zhu (doujiang24) <doujiang24@gmail.com>.
+
+
+Joshua Schmid (jschmid1) <jxs@posteo.de>
+
+Arturas Malinovskis (artomal) <arturas.maarturas.malinovskis@konghq.com>
 
 [Back to TOC](#table-of-contents)
 
