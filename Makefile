@@ -19,12 +19,12 @@ luarocks:
 setup-certs:
 	cd dev/; bash kafka-generate-ssl-automatic.sh; cd -
 
-test: 
-	docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml exec openresty luarocks make
-	docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml exec openresty busted
-
 devup: setup-certs
 	docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml up -d
+
+test: devup
+	docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml exec openresty luarocks make
+	docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml exec openresty busted
 
 devdown:
 	docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml down --remove-orphans
