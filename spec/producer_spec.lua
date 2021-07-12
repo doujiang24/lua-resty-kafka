@@ -6,15 +6,24 @@ local message = MESSAGE
 
 -- FIXME: Although kafka is configured to setup topics on request, the first test will fail as the topic isn't created yet
 -- The next request will work though. Maybe setup a `fake` request to all the topics used in this tests to set them up.
-describe("Test producers", function()
+describe("Test producers: ", function()
 
   before_each(function()
       create_topics()
   end)
 
+  it("only allows ProducerAPI version <=2", function()
+    local p, err = producer:new(broker_list_plain, {api_version=3})
+    assert.is_nil(p)
+    assert.is_not_nil(err)
+    assert.is.same(err, "The highest supported Producer API version is 2")
+  end)
+
   it("sends two messages and the offset is one apart", function()
     local p, err = producer:new(broker_list_plain)
+    assert.is_nil(err)
     local offset1, err = p:send(TEST_TOPIC, key, message)
+    assert.is_nil(err)
     local offset2, err = p:send(TEST_TOPIC, key, message)
     assert.is_nil(err)
     local diff = tonumber(offset2) - tonumber(offset1)
@@ -23,6 +32,7 @@ describe("Test producers", function()
 
   it("sends two messages to two different topics", function()
     local p, err = producer:new(broker_list_plain)
+    assert.is_nil(err)
     local offset1, err = p:send(TEST_TOPIC, key, message)
     assert.is_nil(err)
     assert.is_number(tonumber(offset1))
@@ -43,6 +53,7 @@ describe("Test producers", function()
   it("sends a lot of messages", function()
     local producer_config = { producer_type = "async", flush_time = 100}
     local p, err = producer:new(broker_list_plain, producer_config)
+    assert.is_nil(err)
     -- init offset
     p:send(TEST_TOPIC, key, message)
     p:flush()

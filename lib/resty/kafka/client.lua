@@ -11,13 +11,7 @@ local setmetatable = setmetatable
 local timer_at = ngx.timer.at
 local ngx_log = ngx.log
 local ERR = ngx.ERR
-local INFO = ngx.INFO
-local DEBUG = ngx.DEBUG
-local debug = ngx.config.debug
 local pid = ngx.worker.pid
-local time = ngx.time
-local sleep = ngx.sleep
-local ceil = math.ceil
 local pairs = pairs
 
 
@@ -155,20 +149,6 @@ end
 _M.refresh = _fetch_metadata
 
 
-local function meta_refresh(premature, self, interval)
-    if premature then
-        return
-    end
-
-    _fetch_metadata(self)
-
-    local ok, err = timer_at(interval, meta_refresh, self, interval)
-    if not ok then
-        ngx_log(ERR, "failed to create timer at meta_refresh, err: ", err)
-    end
-end
-
-
 local function _fetch_apiversions(self)
     local correlation_id = 0
     local client_id = self.client_id
@@ -222,6 +202,22 @@ local function _fetch_apiversions(self)
 end
 
 
+local function meta_refresh(premature, self, interval)
+    if premature then
+        return
+    end
+
+    _fetch_metadata(self)
+    _fetch_apiversions(self)
+
+    local ok, err = timer_at(interval, meta_refresh, self, interval)
+    if not ok then
+        ngx_log(ERR, "failed to create timer at meta_refresh, err: ", err)
+    end
+end
+
+
+
 
 function _M.new(self, broker_list, client_config)
     local opts = client_config or {}
@@ -252,12 +248,6 @@ function _M.new(self, broker_list, client_config)
         meta_refresh(nil, cli, opts.refresh_interval / 1000) -- in ms
     end
 
-    -- TODO: if this is being executed whenever we create a producer, we should be caching this.
-    --       the likelyhood of this values chaning is very low which makes it a perfect candidate for
-    --       caching. Maybe set this on a ngx.timer
-    -- populate `supported_api_versions` on module creation
-    -- _fetch_apiversions(cli)
-
     return cli
 end
 
@@ -274,6 +264,7 @@ function _M.fetch_metadata(self, topic)
     end
 
     _fetch_metadata(self, topic)
+    _fetch_apiversions(self)
 
     return _metadata_cache(self, topic)
 end

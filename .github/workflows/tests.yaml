@@ -9,7 +9,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Generate certificates
+        shell: 'script -q -e -c "bash --noprofile --norc -eo pipefail {0}"'
+        working-directory: dev/
+        run: bash kafka-generate-ssl-automatic.sh
       - name: Setup the environment
+        shell: 'script -q -e -c "bash --noprofile --norc -eo pipefail {0}"'
         run: docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml up -d
       - name: Run busted tests
-        run: docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml exec openresty busted
+        shell: 'script -q -e -c "bash --noprofile --norc -eo pipefail {0}"'
+        # Really stupid workaround to avoid issues with healthchecks for rest-proxy
+        # FIXME!
+        run: |
+          sleep 30s
+          docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml exec openresty busted

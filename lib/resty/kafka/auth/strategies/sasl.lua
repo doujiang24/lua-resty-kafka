@@ -23,6 +23,7 @@ function _encode_plaintext(user, pwd)
     return (SEP..user)..(SEP..pwd)
 end
 
+-- TODO: Duplicate function in broker.lua
 function _sock_send_receive(sock, request)
     local bytes, err = sock:send(request:package())
     if not bytes then
