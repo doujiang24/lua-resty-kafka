@@ -2,9 +2,7 @@
 
 
 local response = require "resty.kafka.response"
-local request = require "resty.kafka.request"
 local auth_utils = require "resty.kafka.auth.init"
-local pid = ngx.worker.pid
 
 local to_int32 = response.to_int32
 local setmetatable = setmetatable
@@ -66,10 +64,8 @@ function _M.send_receive(self, request)
         if not ok then
             local msg = "failed to do " .. self.auth.mechanism .." auth with " ..
                         self.host .. ":" .. tostring(self.port) .. ": " .. err, true
-            ngx.say("hello -> " .. msg)
             return nil, msg
         end
-        ngx.say("Authentication successful")
     end
 
     local data, err, f  = _sock_send_receive(sock, request)

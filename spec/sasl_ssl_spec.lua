@@ -6,7 +6,8 @@ local message = MESSAGE
 local broker_list_sasl_ssl = {
     { host = "broker", port = 9093 },
 }
-local sasl_config = { mechanism="PLAIN",
+local sasl_config = { strategy="sasl",
+                      mechanism="PLAIN",
                       user="admin",
                       password="admin-secret" }
 local client_config_sasl_ssl = {
@@ -20,6 +21,7 @@ describe("Testing sasl ssl client", function()
 
   before_each(function()
       cli = client:new(broker_list_sasl_ssl, client_config_sasl_ssl)
+      create_topics()
   end)
 
   it("to build the metatable correctly", function()

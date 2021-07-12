@@ -14,6 +14,7 @@ describe("Testing mtls client", function()
 
   before_each(function()
       cli = client:new(broker_list_mtls, client_config_mtls)
+      create_topics()
     end)
 
   it("to build the metatable correctly", function()
@@ -36,10 +37,10 @@ describe("Testing mtls client", function()
     -- Check if cli partitions metatable was set correctly
   end)
 
-  it("setup producers correctly", function()
+  it("to setup producers correctly", function()
     local p, err = producer:new(broker_list_mtls, client_config_mtls)
     assert.is_nil(err)
-    local offset, err = p:send("test", KEY, MESSAGE)
+    local offset, err = p:send(TEST_TOPIC, KEY, MESSAGE)
     assert.is_nil(err)
     assert.is_number(tonumber(offset))
   end)

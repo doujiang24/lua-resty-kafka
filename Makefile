@@ -12,3 +12,22 @@ all: ;
 install: all
 	$(INSTALL) -d $(DESTDIR)/$(LUA_LIB_DIR)/resty/kafka
 	$(INSTALL) lib/resty/kafka/*.lua $(DESTDIR)/$(LUA_LIB_DIR)/resty/kafka
+
+luarocks:
+	luarocks make
+
+setup-certs:
+	cd dev/; bash kafka-generate-ssl-automatic.sh; cd -
+
+test: 
+	docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml exec openresty luarocks make
+	docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml exec openresty busted
+
+devup: setup-certs
+	docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml up -d
+
+devdown:
+	docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml down --remove-orphans
+
+devshell:
+	docker-compose -f dev/docker-compose.yaml  -f dev/docker-compose.dev.yaml exec openresty /bin/bash

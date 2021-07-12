@@ -93,10 +93,10 @@ services:
     hostname: rest-proxy
     container_name: rest-proxy
     healthcheck:
-      test: ["CMD", "curl" ,"localhost:8082/topics"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
+      test: ["CMD", "curl" ,"http://0.0.0.0:8082/topics"]
+      interval: 10s
+      timeout: 10s
+      retries: 50 
     environment:
       KAFKA_REST_HOST_NAME: rest-proxy
       KAFKA_REST_BOOTSTRAP_SERVERS: 'broker:9092'

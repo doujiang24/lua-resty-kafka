@@ -15,6 +15,7 @@ describe("Testing plain client", function()
 
   before_each(function()
       cli = client:new(broker_list_plain)
+      create_topics()
     end)
 
   it("to build the metatable correctly", function()
@@ -29,6 +30,8 @@ describe("Testing plain client", function()
     -- Check if return is as expected
     assert.are.same({{host = "broker", port = 9092}}, cli.brokers)
     -- Check if return was assigned to cli metatable
+    assert.is_not_nil(cli.supported_api_versions)
+    -- Check if return was assigned to cli metatable
     assert.are.same({errcode = 0, id = 0, isr = {1}, leader = 1, replicas = {1}},partitions[0])
     -- Check if partitions were fetched correctly
     assert.is_not_nil(cli.topic_partitions[TEST_TOPIC])
@@ -37,6 +40,7 @@ describe("Testing plain client", function()
 
   it("setup producers correctly", function()
     local p, err = producer:new(broker_list_plain)
+    assert.is_nil(err)
     local offset, err = p:send(TEST_TOPIC, KEY, MESSAGE)
     assert.is_nil(err)
     assert.is_number(tonumber(offset))
@@ -47,6 +51,7 @@ describe("Testing plain client with a bad broker in the bootstrap list", functio
 
   before_each(function()
       cli = client:new(broker_list_plain_bad_broker)
+      create_topics()
     end)
 
   it("to build the metatable correctly", function()
