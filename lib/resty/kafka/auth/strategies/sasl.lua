@@ -11,7 +11,11 @@ local MECHANISM_PLAINTEXT = "PLAIN"
 local MECHANISM_SCRAMSHA256 = "SCRAM-SHA-256"   --to do
 local SEP =  string.char(0)
 
-function _encode(mechanism, user, pwd)
+local function _encode_plaintext(user, pwd)
+    return (SEP..user)..(SEP..pwd)
+end
+
+local function _encode(mechanism, user, pwd)
     if mechanism  == MECHANISM_PLAINTEXT then
         return _encode_plaintext(user, pwd)
     else
@@ -19,12 +23,8 @@ function _encode(mechanism, user, pwd)
     end
 end
 
-function _encode_plaintext(user, pwd)
-    return (SEP..user)..(SEP..pwd)
-end
-
 -- TODO: Duplicate function in broker.lua
-function _sock_send_receive(sock, request)
+local function _sock_send_receive(sock, request)
     local bytes, err = sock:send(request:package())
     if not bytes then
         return nil, err, true
@@ -52,7 +52,7 @@ function _sock_send_receive(sock, request)
     return response:new(data, request.api_version), nil, true
 end
 
-function _sasl_handshake_decode(resp)
+local function _sasl_handshake_decode(resp)
     -- TODO: contains mechanisms supported by the local server
     -- read this like I did with the supported api versions thing
     local err_code =  resp:int16()
@@ -64,7 +64,7 @@ function _sasl_handshake_decode(resp)
 end
 
 
-function _sasl_auth_decode(resp)
+local function _sasl_auth_decode(resp)
     local err_code = resp:int16()
     local error_msg  = resp:nullable_string()
     local auth_bytes  = resp:bytes()
@@ -75,7 +75,7 @@ function _sasl_auth_decode(resp)
 end
 
 
-function _sasl_auth(self, sock)
+local function _sasl_auth(self, sock)
     local cli_id = "worker" .. pid()
     local req = request:new(request.SaslAuthenticateRequest, 0, cli_id, request.API_VERSION_V1)
     local mechanism = self.config.mechanism
@@ -98,7 +98,7 @@ function _sasl_auth(self, sock)
 end
 
 
-function _sasl_handshake(self, sock)
+local function _sasl_handshake(self, sock)
     local cli_id = "worker" .. pid()
     local api_version = request.API_VERSION_V1
 

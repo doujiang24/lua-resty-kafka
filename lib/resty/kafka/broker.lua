@@ -13,6 +13,35 @@ local _M = {}
 local mt = { __index = _M }
 
 
+local function _sock_send_receive(sock, request)
+    local bytes, err = sock:send(request:package())
+    if not bytes then
+        return nil, err, true
+    end
+
+    -- Reading a 4 byte `message_size`
+    local len, err = sock:receive(4)
+
+    if not len then
+        if err == "timeout" then
+            sock:close()
+            return nil, err
+        end
+        return nil, err, true
+    end
+
+    local data, err = sock:receive(to_int32(len))
+    if not data then
+        if err == "timeout" then
+            sock:close()
+            return nil, err, true
+        end
+    end
+
+    return response:new(data, request.api_version), nil, true
+end
+
+
 function _M.new(self, host, port, socket_config, auth_config)
     return setmetatable({
         host = host,
@@ -71,35 +100,6 @@ function _M.send_receive(self, request)
     local data, err, f  = _sock_send_receive(sock, request)
     sock:setkeepalive(self.config.keepalive_timeout, self.config.keepalive_size)
     return data, err, f
-end
-
-
-function _sock_send_receive(sock, request)
-    local bytes, err = sock:send(request:package())
-    if not bytes then
-        return nil, err, true
-    end
-
-    -- Reading a 4 byte `message_size`
-    local len, err = sock:receive(4)
-
-    if not len then
-        if err == "timeout" then
-            sock:close()
-            return nil, err
-        end
-        return nil, err, true
-    end
-
-    local data, err = sock:receive(to_int32(len))
-    if not data then
-        if err == "timeout" then
-            sock:close()
-        return nil, err, true
-        end
-    end
-
-    return response:new(data, request.api_version), nil, true
 end
 
 return _M
