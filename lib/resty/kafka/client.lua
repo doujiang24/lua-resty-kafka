@@ -144,6 +144,11 @@ local function _fetch_metadata(self, new_topic)
                           ", host: ", host, ", port: ", port)
         else
             local brokers, topic_partitions = metadata_decode(resp)
+            -- Confluent Cloud need the SASL auth on all requests, including to brokers
+            -- we have been referred to. This injects the SASL auth in.
+            for j = 1, #brokers do
+                brokers[j].sasl_config = sasl_config
+            end
             self.brokers, self.topic_partitions = brokers, topic_partitions
 
             return brokers, topic_partitions
