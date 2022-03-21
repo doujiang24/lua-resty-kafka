@@ -12,7 +12,7 @@ on:
 env:
   KAFKA_VER: 2.4.0
   SCALA_VER: 2.11
-  OPENRESTY_VER: 1.15.8.2
+  OPENRESTY_VER: 1.19.9.1
 
 jobs:
   run-test:
