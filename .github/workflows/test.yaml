@@ -86,11 +86,8 @@ jobs:
           ./configure --prefix=/usr/local/openresty-debug --with-debug > build.log 2>&1 || (cat build.log && exit 1)
           make -j4 > build.log 2>&1 || (cat build.log && exit 1)
           sudo make install > build.log 2>&1 || (cat build.log && exit 1)
-
-      - name: Install Test::Nginx
-        run: |
-          sudo apt install libtest-base-perl libtext-diff-perl libipc-run3-perl liburi-perl libwww-perl libtest-longstring-perl liblist-moreutils-perl libgd-dev
-          sudo cpan Test::Nginx
+          sudo apt install libtest-base-perl libtext-diff-perl libipc-run3-perl liburi-perl libwww-perl libtest-longstring-perl liblist-moreutils-perl libgd-dev > build.log 2>&1 || (cat build.log && exit 1)
+          sudo cpan Test::Nginx > build.log 2>&1 || (cat build.log && exit 1)
 
       - name: Run Test
         run: |
