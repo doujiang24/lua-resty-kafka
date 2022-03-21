@@ -90,7 +90,7 @@ jobs:
       - name: Install Test::Nginx
         run: |
           sudo apt install libtest-base-perl libtext-diff-perl libipc-run3-perl liburi-perl libwww-perl libtest-longstring-perl liblist-moreutils-perl libgd-dev
-          git clone https://github.com/openresty/test-nginx.git
+          sudo cpan Test::Nginx
 
       - name: Run Test
         run: |
