@@ -90,7 +90,7 @@ jobs:
 
       - name: Install Test::Nginx
         run: |
-          git clone https://github.com/openresty/test-nginx.git ../test-nginx
+          git clone https://github.com/openresty/test-nginx.git
 
       - name: Run Test
         run: |
