@@ -162,9 +162,9 @@ used:1
     }
 --- request
 GET /t
---- response_body
-topic:test; partition_id:1
-topic:test2; partition_id:1
+--- response_body eval
+qr/topic:test(.*); partition_id:1
+topic:test(.*); partition_id:1/
 --- no_error_log
 [error]
 
@@ -225,12 +225,12 @@ topic:test2; partition_id:1
     }
 --- request
 GET /t
---- response_body
-num:3
+--- response_body eval
+qr/num:3
 num:2
 num:1
-topic:test; partition_id:1
-topic:test5; partition_id:1
-topic:test4; partition_id:1
+topic:test(.*); partition_id:1
+topic:test(.*); partition_id:1
+topic:test(.*); partition_id:1/
 --- no_error_log
 [error]
