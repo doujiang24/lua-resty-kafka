@@ -3,6 +3,7 @@
 
 local broker = require "resty.kafka.broker"
 local request = require "resty.kafka.request"
+local Errors = require "resty.kafka.errors"
 
 
 local setmetatable = setmetatable
@@ -112,6 +113,29 @@ local function metadata_decode(resp)
 end
 
 
+local function api_versions_encode(client_id)
+    local id = 0    -- hard code correlation_id
+    return request:new(request.ApiVersionsRequest, id, client_id, request.API_VERSION_V0)
+end
+
+
+local function api_versions_decode(resp)
+    local errcode = resp:int16()
+
+    local api_keys_num = resp:int32()
+    local api_keys = new_tab(0, api_keys_num)
+    for i = 1, api_keys_num do
+        local api_key, min_version, max_version = resp:int16(), resp:int16(), resp:int16()
+        api_keys[api_key] = {
+            min_version = min_version,
+            max_version = max_version,
+        }
+    end
+
+    return errcode, api_keys
+end
+
+
 local function _fetch_metadata(self, new_topic)
     local topics, num = {}, 0
     for tp, _p in pairs(self.topic_partitions) do
@@ -151,7 +175,24 @@ local function _fetch_metadata(self, new_topic)
             end
             self.brokers, self.topic_partitions = brokers, topic_partitions
 
-            return brokers, topic_partitions
+            -- fetch ApiVersions for compatibility
+            local req = api_versions_encode(self.client_id)
+            local resp, err = bk:send_receive(req)
+            if not resp then
+                ngx_log(INFO, "broker fetch api versions failed, err:", err,
+                          ", host: ", host, ", port: ", port)
+            else
+                local errcode, api_versions = api_versions_decode(resp)
+
+                if not errcode == 0 then
+                    ngx_log(INFO, "broker fetch api versions failed, err:", Errors[err],
+                    ", host: ", host, ", port: ", port)
+                else
+                    self.api_versions = api_versions
+
+                    return brokers, topic_partitions, api_versions
+                end
+            end
         end
     end
 
@@ -191,6 +232,7 @@ function _M.new(self, broker_list, client_config)
         broker_list = broker_list,
         topic_partitions = {},
         brokers = {},
+        api_versions = {}, -- support APIs version on broker
         client_id = "worker" .. pid(),
         socket_config = socket_config,
     }, mt)
