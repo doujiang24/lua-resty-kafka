@@ -269,16 +269,29 @@ qr/\"max_version\":/ and qr /\"min_version\":/
 
             local brokers, partitions = cli:fetch_metadata("test")
 
-            ngx.say(cli:choose_api_version(request.FetchRequest, 0, 0))
+            -- not input version range
+            ngx.say(cli:choose_api_version(request.FetchRequest))
+
+            -- not exist api_key
+            ngx.say(cli:choose_api_version(-1))
+
+            -- set max version to -1 to break version choose
+            ngx.say(cli:choose_api_version(request.FetchRequest, 0, -1))
+
+            -- set lower max version to limit the API version
             ngx.say(cli:choose_api_version(request.FetchRequest, 0, 5))
-            ngx.say(cli:choose_api_version(request.FetchRequest, 0, 12))
+            
+            -- set higher max version to use the highest API version supported by broker
+            ngx.say(cli:choose_api_version(request.FetchRequest, 0, 9999))
         ';
     }
 --- request
 GET /t
 --- response_body
+11
+-1
 -1
 5
-12
+11
 --- no_error_log
 [error]
