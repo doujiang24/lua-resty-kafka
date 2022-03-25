@@ -233,14 +233,14 @@ GET /t
 
             local cli = client:new(broker_list)
 
-            local brokers, partitions, api_versions = cli:fetch_metadata("test")
+            local brokers, partitions = cli:fetch_metadata("test")
             
-            ngx.say(cjson.encode(api_versions))
+            ngx.say(cjson.encode(cli.api_versions))
         ';
     }
 --- request
 GET /t
---- response_body_like
-.*replicas.*
+--- response_body eval
+qr/\"max_version\":/ and qr /\"min_version\":/
 --- no_error_log
 [error]

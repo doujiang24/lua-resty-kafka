@@ -115,7 +115,7 @@ end
 
 local function api_versions_encode(client_id)
     local id = 0    -- hard code correlation_id
-    return request:new(request.ApiVersionsRequest, id, client_id, request.API_VERSION_V0)
+    return request:new(request.ApiVersionsRequest, id, client_id, request.API_VERSION_V2)
 end
 
 
@@ -176,8 +176,7 @@ local function _fetch_metadata(self, new_topic)
             self.brokers, self.topic_partitions = brokers, topic_partitions
 
             -- fetch ApiVersions for compatibility
-            local req = api_versions_encode(self.client_id)
-            local resp, err = bk:send_receive(req)
+            local resp, err = bk:send_receive(api_versions_encode(self.client_id))
             if not resp then
                 ngx_log(INFO, "broker fetch api versions failed, err:", err,
                           ", host: ", host, ", port: ", port)
