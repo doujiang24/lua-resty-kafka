@@ -276,4 +276,29 @@ function _M.choose_broker(self, topic, partition_id)
 end
 
 
+-- select the api version to use, the maximum version will
+-- be used within the allowed range
+function _M.choose_api_version(self, api_key, min_version, max_version)
+    local api_version = self.api_versions[api_key]
+
+    if not api_version then
+        return -1
+    end
+
+    local broker_min_version, broker_max_version = api_version.min_version, api_version.max_version
+
+    if broker_max_version < max_version then
+        if broker_max_version < min_version then
+            return -1
+        else
+            return broker_max_version
+        end
+    elseif broker_min_version > max_version then
+        return -1
+    else
+        return max_version
+    end
+end
+
+
 return _M
