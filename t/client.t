@@ -211,3 +211,36 @@ GET /t
 .*replicas.*
 --- no_error_log
 [error]
+
+
+
+=== TEST 6: ApiVersions fetch
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+
+            local cjson = require "cjson"
+            local client = require "resty.kafka.client"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local messages = {
+                "halo world",
+            }
+
+            local cli = client:new(broker_list)
+
+            local brokers, partitions, api_versions = cli:fetch_metadata("test")
+            
+            ngx.say(cjson.encode(api_versions))
+        ';
+    }
+--- request
+GET /t
+--- response_body_like
+.*replicas.*
+--- no_error_log
+[error]
