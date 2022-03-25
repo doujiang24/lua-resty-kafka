@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feat-apiversions
   pull_request:
     branches:
       - main
