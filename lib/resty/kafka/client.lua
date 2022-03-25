@@ -287,16 +287,20 @@ function _M.choose_api_version(self, api_key, min_version, max_version)
 
     local broker_min_version, broker_max_version = api_version.min_version, api_version.max_version
 
-    if broker_max_version < max_version then
-        if broker_max_version < min_version then
+    if min_version and max_version then
+        if broker_max_version < max_version then
+            if broker_max_version < min_version then
+                return -1
+            else
+                return broker_max_version
+            end
+        elseif broker_min_version > max_version then
             return -1
         else
-            return broker_max_version
+            return max_version
         end
-    elseif broker_min_version > max_version then
-        return -1
     else
-        return max_version
+        return broker_max_version
     end
 end
 
