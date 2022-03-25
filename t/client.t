@@ -244,3 +244,41 @@ GET /t
 qr/\"max_version\":/ and qr /\"min_version\":/
 --- no_error_log
 [error]
+
+
+
+=== TEST 7: ApiVersions choose
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+
+            local cjson = require "cjson"
+            local request = require "resty.kafka.request"
+            local client = require "resty.kafka.client"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local messages = {
+                "halo world",
+            }
+
+            local cli = client:new(broker_list)
+
+            local brokers, partitions = cli:fetch_metadata("test")
+
+            ngx.say(cli:choose_api_version(request.FetchRequest, 0, 0))
+            ngx.say(cli:choose_api_version(request.FetchRequest, 0, 5))
+            ngx.say(cli:choose_api_version(request.FetchRequest, 0, 12))
+        ';
+    }
+--- request
+GET /t
+--- response_body
+-1
+5
+12
+--- no_error_log
+[error]
