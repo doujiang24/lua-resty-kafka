@@ -3,10 +3,10 @@ name: Test
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
     branches:
-      - main
+      - master
 
 env:
   KAFKA_VER: 2.4.0
