@@ -139,16 +139,14 @@ end
 local function _fetch_api_versions(broker, client_id)
     local resp, err = broker:send_receive(api_versions_encode(client_id))
     if not resp then
-        ngx_log(INFO, "broker fetch api versions failed, err:", err,
-                  ", host: ", broker.host, ", port: ", broker.port)
+        return nil, err
     else
         local errcode, api_versions = api_versions_decode(resp)
 
         if errcode ~= 0 then
-            ngx_log(INFO, "broker fetch api versions failed, err:", Errors[err],
-            ", host: ", broker.host, ", port: ", broker.port)
+            return nil, Errors[err]
         else
-            return api_versions
+            return api_versions, nil
         end
     end
 end
@@ -192,9 +190,16 @@ local function _fetch_metadata(self, new_topic)
                 b.sasl_config = sasl_config
             end
             self.brokers, self.topic_partitions = brokers, topic_partitions
-            self.api_versions = _fetch_api_versions(bk, self.client_id)
 
-            return brokers, topic_partitions, self.api_versions
+            -- fetch ApiVersions for compatibility
+            local api_versions, err = _fetch_api_versions(bk, self.client_id)
+            if not api_versions then
+                ngx_log(INFO, "broker fetch api versions failed, err:", err,
+                          ", host: ", broker.host, ", port: ", broker.port)
+            end
+            self.api_versions = api_versions
+
+            return brokers, topic_partitions, api_versions
         end
     end
 
