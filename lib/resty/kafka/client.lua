@@ -136,6 +136,24 @@ local function api_versions_decode(resp)
 end
 
 
+local function _fetch_api_versions(broker, client_id)
+    local resp, err = broker:send_receive(api_versions_encode(client_id))
+    if not resp then
+        ngx_log(INFO, "broker fetch api versions failed, err:", err,
+                  ", host: ", broker.host, ", port: ", broker.port)
+    else
+        local errcode, api_versions = api_versions_decode(resp)
+
+        if errcode ~= 0 then
+            ngx_log(INFO, "broker fetch api versions failed, err:", Errors[err],
+            ", host: ", broker.host, ", port: ", broker.port)
+        else
+            return api_versions
+        end
+    end
+end
+
+
 local function _fetch_metadata(self, new_topic)
     local topics, num = {}, 0
     for tp, _p in pairs(self.topic_partitions) do
@@ -174,24 +192,9 @@ local function _fetch_metadata(self, new_topic)
                 b.sasl_config = sasl_config
             end
             self.brokers, self.topic_partitions = brokers, topic_partitions
+            self.api_versions = _fetch_api_versions(bk, self.client_id)
 
-            -- fetch ApiVersions for compatibility
-            local resp, err = bk:send_receive(api_versions_encode(self.client_id))
-            if not resp then
-                ngx_log(INFO, "broker fetch api versions failed, err:", err,
-                          ", host: ", host, ", port: ", port)
-            else
-                local errcode, api_versions = api_versions_decode(resp)
-
-                if not errcode == 0 then
-                    ngx_log(INFO, "broker fetch api versions failed, err:", Errors[err],
-                    ", host: ", host, ", port: ", port)
-                else
-                    self.api_versions = api_versions
-
-                    return brokers, topic_partitions, api_versions
-                end
-            end
+            return brokers, topic_partitions, self.api_versions
         end
     end
 
