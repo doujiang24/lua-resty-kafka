@@ -196,10 +196,11 @@ local function _fetch_metadata(self, new_topic)
             if not api_versions then
                 ngx_log(INFO, "broker fetch api versions failed, err:", err,
                           ", host: ", broker.host, ", port: ", broker.port)
-            end
-            self.api_versions = api_versions
+            else
+                self.api_versions = api_versions
 
-            return brokers, topic_partitions, api_versions
+                return brokers, topic_partitions, api_versions
+            end
         end
     end
 
