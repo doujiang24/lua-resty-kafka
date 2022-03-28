@@ -213,6 +213,7 @@ When `min_version` and `max_version` are provided, it will act as a limit and th
 
 Tip: The version selection strategy is to choose the maximum version within the allowed range.
 
+
 [Back to TOC](#table-of-contents)
 
 resty.kafka.producer
