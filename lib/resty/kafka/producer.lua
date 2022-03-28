@@ -170,15 +170,12 @@ local function _send(self, broker_conf, topic_partitions)
                     else
                         err = Errors[errcode]
 
-                        -- XX: only 3, 5, 6 can retry
-                        local retryable0 = retryable
-                        if errcode ~= 3 and errcode ~= 5 and errcode ~= 6 then
-                            retryable0 = false
-                        end
+                        -- set retries according to the error list
+                        local retryable0 = retryable or err.retriable
 
-                        local index = sendbuffer:err(topic, partition_id, err, retryable0)
+                        local index = sendbuffer:err(topic, partition_id, err.error, retryable0)
 
-                        ngx_log(INFO, "retry to send messages to kafka err: ", err, ", retryable: ", retryable0,
+                        ngx_log(INFO, "retry to send messages to kafka err: ", err.error, ", retryable: ", retryable0,
                             ", topic: ", topic, ", partition_id: ", partition_id, ", length: ", index / 2)
                     end
                 end
