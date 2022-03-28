@@ -16,6 +16,7 @@ Table of Contents
             * [new](#new)
             * [fetch_metadata](#fetch_metadata)
             * [refresh](#refresh)
+            * [choose_api_version](#choose_api_version)
     * [resty.kafka.producer](#restykafkaproducer)
         * [Methods](#methods)
             * [new](#new)
@@ -199,6 +200,18 @@ This will refresh the metadata of all topics which have been fetched by `fetch_m
 In case of success, return all brokers and all partitions of all topics.
 In case of errors, returns `nil` with a string describing the error.
 
+
+[Back to TOC](#table-of-contents)
+
+#### choose_api_version
+
+`syntax: api_version = c:choose_api_version(api_key, min_version, max_version)`
+
+This helps the client to select the correct version of the `api_key` corresponding to the API.
+
+When `min_version` and `max_version` are provided, it will act as a limit and the selected versions in the return value will not exceed their limits no matter how high or low the broker supports the API version. When they are not provided, it will follow the range of versions supported by the broker.
+
+Tip: The version selection strategy is to choose the maximum version within the allowed range.
 
 [Back to TOC](#table-of-contents)
 
