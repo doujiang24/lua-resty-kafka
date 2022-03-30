@@ -8,6 +8,7 @@ local client = require "resty.kafka.client"
 local Errors = require "resty.kafka.errors"
 local sendbuffer = require "resty.kafka.sendbuffer"
 local ringbuffer = require "resty.kafka.ringbuffer"
+local utils = require "resty.kafka.utils"
 
 
 local setmetatable = setmetatable
@@ -53,7 +54,7 @@ end
 
 
 local function correlation_id(self)
-    local id = (self.correlation_id + 1) % 1073741824 -- 2^30
+    local id = utils.correlation_id(self.correlation_id)
     self.correlation_id = id
 
     return id

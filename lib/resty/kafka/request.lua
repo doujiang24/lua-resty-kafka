@@ -114,6 +114,17 @@ function _M.new(self, apikey, correlation_id, client_id, api_version)
 end
 
 
+function _M.int8(self, int)
+    local req = self._req
+    local offset = self.offset
+
+    req[offset] = str_int8(int)
+
+    self.offset = offset + 1
+    self.len = self.len + 1
+end
+
+
 function _M.int16(self, int)
     local req = self._req
     local offset = self.offset
