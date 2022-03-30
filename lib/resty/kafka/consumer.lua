@@ -178,7 +178,54 @@ end
 
 
 local function fetch_decode(resp)
-    
+    local ret = {}
+    local api_version = resp.api_version
+
+    local throttle_time_ms -- throttle_time_ms
+    if api_version >= API_VERSION_V1 then
+        throttle_time_ms = resp:int32() -- throttle_time_ms
+    end
+
+    local errcode, session_id
+    if api_version >= API_VERSION_V7 then
+        errcode = resp:int16() -- error_code
+        session_id = resp:int32() -- session_id
+    end
+
+    local topic_num = resp:int32() -- [responses] array length
+
+    for i = 1, topic_num do
+        local topic = resp:string() -- [responses] topic
+
+        local partition_num = resp:int32() -- [responses] [partitions] array length
+        for j = 1, partition_num do
+            local partition = resp:int32() -- [responses] [partitions] partition_index
+            local errcode = resp:int16() -- [responses] [partitions] error_code
+            local high_watermark = resp:int64() -- [responses] [partitions] high_watermark
+
+            if api_version >= API_VERSION_V4 then
+                local last_stable_offset = resp:int64() -- [responses] [partitions] last_stable_offset
+
+                if api_version >= API_VERSION_V5 then
+                    local log_start_offset = resp:int64() -- [responses] [partitions] log_start_offset
+                end
+
+                local aborted_transactions_num = resp:int32()
+                for k = 1, aborted_transactions_num do
+                    local producer_id = resp:int64() -- [responses] [partitions] [aborted_transactions] producer_id
+                    local first_offset = resp:int64() -- [responses] [partitions] [aborted_transactions] first_offset
+                end
+            end
+
+            if api_version > API_VERSION_V11 then
+                local preferred_read_replica = resp:int32() -- [responses] [partitions] preferred_read_replica
+            end
+
+            local records = {} -- [responses] [partitions] records
+        end
+    end
+
+    return ret, throttle_time_ms
 end
 
 
