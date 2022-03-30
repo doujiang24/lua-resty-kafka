@@ -12,9 +12,18 @@ local DEBUG = ngx.DEBUG
 local table_insert = require "table.insert"
 
 
-local API_VERSION_V0 = 0
-local API_VERSION_V1 = 1
-local API_VERSION_V2 = 2
+local API_VERSION_V0  = 0
+local API_VERSION_V1  = 1
+local API_VERSION_V2  = 2
+local API_VERSION_V3  = 3
+local API_VERSION_V4  = 4
+local API_VERSION_V5  = 5
+local API_VERSION_V6  = 6
+local API_VERSION_V7  = 7
+local API_VERSION_V8  = 8
+local API_VERSION_V9  = 9
+local API_VERSION_V10 = 10
+local API_VERSION_V11 = 11
 
 
 local _M = { _VERSION = "0.10" }
@@ -61,6 +70,8 @@ local function offset_fetch_encode(self, topics)
             req:int64(ffi.new("int64_t", (ngx_now() * 1000))) -- [topics] [partitions] timestamp
         end
     end
+
+    return req
 end
 
 
@@ -103,8 +114,66 @@ local function offset_fetch_decode(resp)
 end
 
 
-local function fetch_encode(topic, partition_id, offset)
+local function fetch_encode(self, topics, topics_offset)
+    local api_version = self.client:choose_api_version(request.FetchRequest, API_VERSION_V0, API_VERSION_V11)
+    local req = request:new(request.FetchRequest,
+                            correlation_id(self), self.client.client_id, api_version)
+
+    req:int32(-1) -- replica_id
+    req:int32(1000) -- max_wait_ms
+    req:int32(0) -- min_bytes
     
+    if api_version >= API_VERSION_V3 then
+        req:int32(10 * 1024 * 1024) -- max_bytes: 10MB
+    end
+
+    if api_version >= API_VERSION_V4 then
+        req:int8(self.isolation_level) -- isolation_level
+    end
+
+    if api_version >= API_VERSION_V7 then
+        req:int32(0) -- session_id
+        req:int32(-1) -- session_epoch
+    end
+
+    req:int32(#topics)   -- [topics] array length
+
+    for topic, topic_info in pairs(topics) do
+        req:string(topic) -- [topics] name
+        req:int32(#topic_info.partitions) -- [topics] [partitions] array length
+
+        for _, partition_id in ipairs(topic_info.partitions) do
+            req:int32(partition_id) -- [topics] [partitions] partition
+
+            if api_version >= API_VERSION_V9 then
+                req:int32(-1) -- [topics] [partitions] current_leader_epoch
+            end
+
+            local topic_partition = topics_offset[topic][partition_id]
+            if not topic_partition then
+                req:int64(0) -- [topics] [partitions] fetch_offset
+            else
+                req:int64(topic_partition.offset) -- [topics] [partitions] fetch_offset
+            end
+            
+            if api_version >= API_VERSION_V5 then
+                req:int64(-1) -- [topics] [partitions] log_start_offset
+            end
+
+            req:int32(10 * 1024 * 1024) -- [topics] [partitions] partition_max_bytes
+        end
+    end
+
+    if api_version >= API_VERSION_V7 then
+        -- ForgottenTopics list add by KIP-227, only brokers use it, consumers do not use it
+        req:int32(0) -- [forgotten_topics_data] array length
+    end
+
+    if api_version >= API_VERSION_V11 then
+        req:string(self.client_rack) -- rack_id
+    end
+
+    return req
 end
 
 
@@ -180,6 +249,7 @@ function _M.new(self, broker_list, consumer_config, cluster_name)
         client = cli,
         correlation_id = 1,
         isolation_level = opts.isolation_level or 0,
+        client_rack = opts.client_rack or "default",
         socket_config = cli.socket_config,
         topics = {},
         topics_metadata = {},
