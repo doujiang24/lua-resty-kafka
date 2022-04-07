@@ -149,7 +149,6 @@ function _M.fetch_encode(consumer, topic_partitions, client_rack)
                                                        protocol.API_VERSION_V0,
                                                        protocol.API_VERSION_V11)
 
-                                                       api_version = 2
     local req = request:new(request.FetchRequest,
                             protocol.correlation_id(consumer),
                             client.client_id, api_version)
@@ -159,7 +158,6 @@ end
 
 
 function _M.fetch_decode(resp)
-    local topic_partitions = {}
     local fetch_info = {}
     local api_version = resp.api_version
 
@@ -174,11 +172,19 @@ function _M.fetch_decode(resp)
 
     local topic_num = resp:int32() -- [responses] array length
 
+    local topic_partitions = {
+        topic_num = topic_num,
+        topics = {},
+    }
+
     for i = 1, topic_num do
         local topic = resp:string() -- [responses] topic
         local partition_num = resp:int32() -- [responses] [partitions] array length
 
-        topic_partitions[topic] = {}
+        topic_partitions.topics[topic] = {
+            partition_num = partition_num,
+            partitions = {}
+        }
 
         for j = 1, partition_num do
             local partition = resp:int32() -- [responses] [partitions] partition_index
@@ -211,7 +217,7 @@ function _M.fetch_decode(resp)
 
             partition_ret.records = proto_record.message_set_decode(resp) -- [responses] [partitions] records
 
-            topic_partitions[topic][partition] = partition_ret
+            topic_partitions.topics[topic].partitions[partition] = partition_ret
         end
     end
 
