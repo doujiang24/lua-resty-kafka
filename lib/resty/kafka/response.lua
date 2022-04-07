@@ -160,4 +160,11 @@ function _M.correlation_id(self)
 end
 
 
+-- Take 1 byte (8 bit) from offset without modifying the offset
+local function _byte(self, offset)
+    offset = offset or self.offset
+    return sub(self.str, offset, offset)
+end
+
+
 return _M
