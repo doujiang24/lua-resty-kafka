@@ -258,4 +258,38 @@ function _M.varlong(self)
 end
 
 
+function _M.peek_bytes(self, offset, len)
+    offset = offset or self.offset
+    return sub(self.str, offset, offset + len - 1)
+end
+
+
+-- Decode the fixed-length bytes used in Record indicate the length by varint.
+function _M.varint_bytes(self)
+    local len = self:varint()
+
+    if len < 0 then
+        return nil
+    end
+
+    local offset = self.offset
+    self.offset = offset + len
+
+    return self:peek_bytes(offset, len)
+end
+
+
+-- Get the number of data in the response that has not yet been parsed
+function _M.remain(self)
+    return #self.str - self.offset
+end
+
+
+-- Forcibly close the response and set the offset to the end so that
+-- it can no longer read more data.
+function _M.close(self)
+    self.offset = #self.str
+end
+
+
 return _M
