@@ -160,10 +160,101 @@ function _M.correlation_id(self)
 end
 
 
--- Take 1 byte (8 bit) from offset without modifying the offset
-local function _byte(self, offset)
-    offset = offset or self.offset
-    return sub(self.str, offset, offset)
+-- The following code is referenced in this section.
+-- https://github.com/Neopallium/lua-pb/blob/master/pb/standard/unpack.lua#L64-L133
+local function _uvar64(self, num)
+    -- encode first 48bits
+	local b1 = band(num, 0xFF)
+	num = floor(num / 256)
+	local b2 = band(num, 0xFF)
+	num = floor(num / 256)
+	local b3 = band(num, 0xFF)
+	num = floor(num / 256)
+    local b4 = band(num, 0xFF)
+	num = floor(num / 256)
+    local b5 = band(num, 0xFF)
+	num = floor(num / 256)
+	local b6 = band(num, 0xFF)
+	num = floor(num / 256)
+
+	local seg = self:int8()
+	local base_factor = 2 -- still one bit in 'num'
+	num = num + (band(seg, 0x7F) * base_factor)
+	while seg >= 128 do
+		base_factor = base_factor * 128
+		seg = self:int8()
+		num = num + (band(seg, 0x7F) * base_factor)
+	end
+	-- encode last 16bits
+	local b7 = band(num, 0xFF)
+	num = floor(num / 256)
+	local b8 = band(num, 0xFF)
+
+    return 4294967296LL * bor(lshift(b8, 56), lshift(b7, 48), lshift(b6, 40), lshift(b5, 32))
+            + 16777216LL * b4
+            + bor(lshift(b3, 16), lshift(b2, 8), b1)
+end
+
+
+-- Decode bytes as Zig-Zag encoded unsigned integer (32-bit or 64-bit)
+local function _uvar(self)
+    local seg = self:int8()
+    local num = band(seg, 0x7F)
+
+    -- In every 1byte (i.e., in every 8 bit), the first bit is used to
+    -- identify whether there is data to follow, and the remaining 7 bits
+    -- indicate the actual data.
+    -- So the maximum value that can be expressed per byte is 128, and when
+    -- the next byte is fetched, factor will be squared to calculate the
+    -- correct value.
+    local base_factor = 128
+
+    -- The value of the first bit of the per byte (8 bit) is 1, marking the
+    -- next byte as still a segment of this varint. Keep taking values until
+    -- there are no remaining segments.
+    while seg >= 128 do
+        seg = self:int8()
+
+        -- When out of range, change to 64-bit parsing mode.
+        if base_factor > 128 ^ 6 and seg > 0x1F then
+            return _uvar64(self, num)
+        end
+
+        num = num + (band(seg, 0x7F) * base_factor)
+        base_factor = base_factor * 128
+    end
+
+    return num
+end
+
+
+-- Decode Zig-Zag encoded unsigned 32-bit integer as 32-bit integer
+function _M.varint(self)
+    local num = _uvar(self)
+
+    -- decode 32-bit integer Zig-Zag
+    return bxor(arshift(num, 1), -band(num, 1))
+end
+
+
+-- Decode Zig-Zag encoded unsigned 64-bit integer as 64-bit integer
+function _M.varlong(self)
+    local num = _uvar(self)
+
+    -- decode 64-bit integer Zig-Zag
+    local high_bit = false
+	-- we need to work with a positive number
+	if num < 0 then
+		high_bit = true
+		num = 0x8000000000000000 + num
+	end
+	if num % 2 == 1 then
+		num = -(num + 1)
+	end
+	if high_bit then
+		return (num / 2) + 0x4000000000000000
+	end
+	return num / 2
 end
 
 
