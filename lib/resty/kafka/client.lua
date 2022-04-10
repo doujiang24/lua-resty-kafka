@@ -114,7 +114,7 @@ end
 
 
 local function api_versions_encode(client_id)
-    local id = 0    -- hard code correlation_id
+    local id = 1    -- hard code correlation_id
     return request:new(request.ApiVersionsRequest, id, client_id, request.API_VERSION_V2)
 end
 
