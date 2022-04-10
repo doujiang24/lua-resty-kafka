@@ -11,10 +11,13 @@ local band = bit.band
 local math_abs = math.abs
 
 
-
 local _M = {}
 
 
+--- Decode MessageSet v0 and v1 (the old format) data.
+-- Tip: The return value message contains the int64 value, which is of
+-- type cdata and cannot be used directly in some scenarios.
+-- @author bzp2010 <bzp2010@apache.org>
 local function _message_set_v0_1_decode(resp)
     local message = {}
 
@@ -38,7 +41,7 @@ local function _message_set_v0_1_decode(resp)
     local crc_content = resp:peek_bytes(resp.offset, message_size - 4)
     local calc_crc = ngx_crc32(crc_content)
     if crc ~= calc_crc and math_abs(crc) + math_abs(calc_crc) ~= 4294967296 then
-        return nil, nil, "crc checksum error"
+        return nil, "crc checksum error"
     end
 
     local magic_byte = resp:int8()
@@ -56,18 +59,14 @@ local function _message_set_v0_1_decode(resp)
     message.key = resp:bytes()
     message.value = resp:bytes()
 
-    return {message}
+    return {message}, nil
 end
 
 
--- Decode MessageSet v2 (aka RecordBatch) data.
--- @input resp               Response Body
--- @input fetch_offset       The starting offset set by this fetch
--- @return messages          All messages, may be nil
--- @return message_set_info  Information of this Message Set, nil now
--- @return err               Error message
+--- Decode MessageSet v2 (aka RecordBatch) data.
 -- Tip: The return value message contains the int64 value, which is of
 -- type cdata and cannot be used directly in some scenarios.
+-- @author bzp2010 <bzp2010@apache.org>
 local function _message_set_v2_decode(resp, fetch_offset)
     local messages = {}
 
@@ -98,6 +97,7 @@ local function _message_set_v2_decode(resp, fetch_offset)
     -- If the last record's offset is also less than fetch's offset,
     -- all outdated records are discarded.
     if last_offset < fetch_offset then
+        resp:close()
         return nil, nil, "all records outdated"
     end
 
@@ -107,7 +107,7 @@ local function _message_set_v2_decode(resp, fetch_offset)
     local max_timestamp = resp:int64() -- maxTimestamp
 
     -- These fields are intended to support idempotent messages.
-    -- Related features are NYI
+    -- The features are NYI
     local producer_id = resp:int64() -- producerId
     local producer_epoch = resp:int16() -- producerEpoch
     local base_sequence = resp:int32() -- baseSequence
@@ -156,6 +156,10 @@ local function _message_set_v2_decode(resp, fetch_offset)
 end
 
 
+---------
+-- Decode the message set, a different version of decoder will be selected
+-- automatically according to the MagicByte inside the message
+-- @author bzp2010 <bzp2010@apache.org>
 function _M.message_set_decode(resp, fetch_offset)
     local ret = {}
     local message_set_size = resp:int32()
