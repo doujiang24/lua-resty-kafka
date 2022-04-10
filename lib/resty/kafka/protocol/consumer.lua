@@ -3,28 +3,36 @@ local proto_record = require "resty.kafka.protocol.record"
 local request = require "resty.kafka.request"
 
 local ffi = require "ffi"
-local ngx_now = ngx.now
 local table_insert = table.insert
 
 local _M = {}
 
 
-local function _offset_fetch_encode(req, isolation_level, topic_partitions, client_rack)
+_M.LIST_OFFSET_TIMESTAMP_LAST  = -1
+_M.LIST_OFFSET_TIMESTAMP_FIRST = -2
+_M.LIST_OFFSET_TIMESTAMP_MAX   = -3
+
+
+local function _list_offset_encode(req, isolation_level, topic_partitions)
     req:int32(-1) -- replica_id
 
     if req.api_version >= protocol.API_VERSION_V2 then
         req:int8(isolation_level) -- isolation_level
     end
 
-    req:int32(#topic_partitions)   -- [topics] array length
+    req:int32(topic_partitions.topic_num)   -- [topics] array length
 
-    for topic, topic_partition in pairs(topic_partitions) do
+    for topic, partitions in pairs(topic_partitions.topics) do
         req:string(topic) -- [topics] name
-        req:int32(#topic_partition) -- [topics] [partitions] array length
+        req:int32(partitions.partition_num) -- [topics] [partitions] array length
 
-        for partition in pairs(topic_partition) do
-            req:int32(partition) -- [topics] [partitions] partition_index
-            req:int64(ffi.new("int64_t", (ngx_now() * 1000))) -- [topics] [partitions] timestamp
+        for partition_id, partition_info in pairs(partitions.partitions) do
+            req:int32(partition_id) -- [topics] [partitions] partition_index
+            req:int64(ffi.new("int64_t", partition_info.timestamp)) -- [topics] [partitions] timestamp
+
+            if req.api_version == protocol.API_VERSION_V0 then
+                req:int32(1) -- [topics] [partitions] max_num_offsets
+            end
         end
     end
 
@@ -34,7 +42,7 @@ end
 
 local function _fetch_encode(req, isolation_level, topic_partitions, rack_id)
     req:int32(-1) -- replica_id
-    req:int32(1000) -- max_wait_ms
+    req:int32(100) -- max_wait_ms
     req:int32(0) -- min_bytes
     
     if req.api_version >= protocol.API_VERSION_V3 then
@@ -86,24 +94,26 @@ local function _fetch_encode(req, isolation_level, topic_partitions, rack_id)
 end
 
 
-function _M.offset_fetch_encode(consumer, topic_partitions, isolation_level)
+function _M.list_offset_encode(consumer, topic_partitions, isolation_level)
     local client = consumer.client
+
+    isolation_level = isolation_level or 0
 
     -- determine API version (min: v0; max: v2)
     local api_version = client:choose_api_version(protocol.OffsetRequest,
                                                   protocol.API_VERSION_V0,
                                                   protocol.API_VERSION_V2)
 
-    local req = request:new(protocol.OffsetRequest, 
+    local req = request:new(protocol.OffsetRequest,
                             protocol.correlation_id(consumer),
                             client.client_id, api_version)
 
-    return _offset_fetch_encode(req, isolation_level, topic_partitions)
+    return _list_offset_encode(req, isolation_level, topic_partitions)
 end
 
 
-function _M.offset_fetch_decode(resp)
-    local ret = {}
+function _M.list_offset_decode(resp)
+    
     local api_version = resp.api_version
 
     local throttle_time_ms -- throttle_time_ms
@@ -113,36 +123,47 @@ function _M.offset_fetch_decode(resp)
 
     local topic_num = resp:int32() -- [topics] array length
     
+    local topic_partitions = {
+        topic_num = topic_num,
+        topics = {},
+    }
+
     for i = 1, topic_num do
         local topic = resp:string() -- [topics] name
         local partition_num = resp:int32() -- [topics] [partitions] array length
 
-        ret[topic] = {}
+        topic_partitions.topics[topic] = {
+            partition_num = partition_num,
+            partitions = {}
+        }
 
         for j = 1, partition_num do
-            local partition = resp:int32()
+            local partition = resp:int32() -- [topics] [partitions] partition_index
 
             if api_version == protocol.API_VERSION_V0 then
-                ret[topic][partition] = {
-                    errcode = resp:int16(),
-                    offset = resp:int64(),
+                topic_partitions.topics[topic].partitions[partition] = {
+                    errcode = resp:int16(), -- [topics] [partitions] error_code
+                    offset = tostring(resp:int64()), -- [topics] [partitions] offset
                 }
             else
-                ret[topic][partition] = {
-                    errcode = resp:int16(),
-                    timestamp = resp:int64(),
-                    offset = resp:int64(),
+                topic_partitions.topics[topic].partitions[partition] = {
+                    errcode = resp:int16(), -- [topics] [partitions] error_code
+                    timestamp = tostring(resp:int64()), -- [topics] [partitions] timestamp
+                    offset = tostring(resp:int64()), -- [topics] [partitions] offset
                 }
             end
         end
     end
 
-    return ret, throttle_time_ms
+    return topic_partitions, throttle_time_ms
 end
 
 
-function _M.fetch_encode(consumer, topic_partitions, client_rack)
+function _M.fetch_encode(consumer, topic_partitions, isolation_level, client_rack)
     local client = consumer.client
+
+    isolation_level = isolation_level or 0
+    client_rack = client_rack or "default"
 
     -- determine API version (min: v0; max: v11)
     local api_version = client:choose_api_version(request.FetchRequest,
@@ -153,7 +174,7 @@ function _M.fetch_encode(consumer, topic_partitions, client_rack)
                             protocol.correlation_id(consumer),
                             client.client_id, api_version)
 
-    return _fetch_encode(req, 0, topic_partitions, client_rack)
+    return _fetch_encode(req, isolation_level, topic_partitions, client_rack)
 end
 
 
