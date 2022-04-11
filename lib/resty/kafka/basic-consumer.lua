@@ -10,10 +10,10 @@ local INFO = ngx.INFO
 local _M = {}
 local mt = { __index = _M }
 
-function _M.new(self, broker_list, consumer_config)
-    local opts = consumer_config or {}
+function _M.new(self, broker_list, client_config)
+    local opts = client_config or {}
 
-    local cli = client:new(broker_list, consumer_config)
+    local cli = client:new(broker_list, client_config)
     local p = setmetatable({
         client = cli,
         correlation_id = 1,
@@ -38,7 +38,7 @@ end
 function _M.list_offset(self, topic, partition, timestamp)
     timestamp = timestamp or protocol_consumer.LIST_OFFSET_TIMESTAMP_FIRST
 
-    local cli = self.cli
+    local cli = self.client
     local broker_conf = cli:choose_broker(topic, partition)
 
     local bk, err = broker:new(broker_conf.host, broker_conf.port, self.socket_config, broker_conf.sasl_config)
@@ -94,7 +94,7 @@ end
 -- @return messages  The obtained offset messages, which is in a table, may be nil
 -- @return err       The error of request, may be nil
 function _M.fetch(self, topic, partition, offset)
-    local cli = self.cli
+    local cli = self.client
     local broker_conf = cli:choose_broker(topic, partition)
 
     local bk, err = broker:new(broker_conf.host, broker_conf.port, self.socket_config, broker_conf.sasl_config)
