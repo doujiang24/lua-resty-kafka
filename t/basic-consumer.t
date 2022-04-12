@@ -31,40 +31,7 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: send some test messages
---- http_config eval: $::HttpConfig
---- config
-    location /t {
-        content_by_lua '
 
-            local cjson = require "cjson"
-            local producer = require "resty.kafka.producer"
-
-            local broker_list = {
-                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
-            }
-
-            local message = "msg"
-
-            local p = producer:new(broker_list)
-
-            for i = 1, 135 do
-                local offset, err = p:send("test-consumer", nil, message .. tostring(i))
-                if not offset then
-                    ngx.say("send err:", err)
-                    return
-                end
-            end
-
-            ngx.say("offset: ", tostring(offset))
-        ';
-    }
---- request
-GET /t
---- response_body_like
-.*offset.*
---- no_error_log
-[error]
 
 
 
@@ -116,7 +83,7 @@ test-consumer: partition 1, offset: 0LL
 --- config
     location /t {
         content_by_lua '
-            ngx.sleep(1) -- wait 1 second for kafka sync
+            ngx.sleep(5) -- wait 5 second for kafka sync
             local cjson = require("cjson")
             local bconsumer = require("resty.kafka.basic-consumer")
             local protocol_consumer = require("resty.kafka.protocol.consumer")
