@@ -48,9 +48,9 @@ __DATA__
             local p = producer:new(broker_list)
 
             for i = 1, 135 do
-                local offset, err = p:send("test-consumer", nil, message .. tostring(i))
+                --local offset, err = p:send("test-consumer", nil, message .. tostring(i))
                 if not offset then
-                    ngx.say("send err:", err)
+                    --ngx.say("send err:", err)
                     return
                 end
             end
@@ -228,5 +228,41 @@ GET /t
 --- response_body
 msg102msg104msg106msg108msg110msg112msg114msg116msg118msg120msg122msg124msg126msg128msg130msg132msg134
 msg101msg103msg105msg107msg109msg111msg113msg115msg117msg119msg121msg123msg125msg127msg129msg131msg133msg135
+--- no_error_log
+[error]
+
+
+
+=== TEST 6: fetch message (empty)
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            local cjson = require("cjson")
+            local bconsumer = require("resty.kafka.basic-consumer")
+            local protocol_consumer = require("resty.kafka.protocol.consumer")
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local c = bconsumer:new(broker_list)
+
+            local _, err = c:fetch("test-consumer", 0, 200) -- partition 0, offset 200
+            if err == "OffsetOutOfRange" then
+                ngx.say("OffsetOutOfRange0")
+            end
+
+            local _, err = c:fetch("test-consumer", 1, 200) -- partition 1, offset 200
+            if err == "OffsetOutOfRange" then
+                ngx.say("OffsetOutOfRange1")
+            end
+        ';
+    }
+--- request
+GET /t
+--- response_body
+OffsetOutOfRange0
+OffsetOutOfRange1
 --- no_error_log
 [error]
