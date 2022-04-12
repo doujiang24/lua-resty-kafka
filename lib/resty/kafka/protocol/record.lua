@@ -132,10 +132,11 @@ local function _message_set_v2_decode(resp, fetch_offset)
         -- The sixth bit of isControlBatch (bit 5) in attributes has a value of 1,
         -- i.e. the current MessageSet (RecordBatch) is a ControlBatch.
         -- !! Not process Conrtol Batch for now, they will be skipped !!
-        if band(attributes, 0x20) then
+        if band(attributes, 0x20) > 0 then
             resp:varint() -- keyLength skipped
             resp:int16() -- ControlBatch version skipped
             resp:int16() -- ControlBatch type skipped
+            goto continue
         end
 
         messages[i] = {
@@ -150,6 +151,7 @@ local function _message_set_v2_decode(resp, fetch_offset)
         -- !! Not parse message headers for now, they will be skipped !!
         local header_len = message_end - resp.offset
         resp.offset = resp.offset + header_len
+        ::continue::
     end
 
     return messages, nil, nil

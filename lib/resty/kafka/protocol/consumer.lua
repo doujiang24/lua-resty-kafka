@@ -71,10 +71,10 @@ local function _fetch_encode(req, isolation_level, topic_partitions, rack_id)
                 req:int32(-1) -- [topics] [partitions] current_leader_epoch
             end
 
-            req:int64(partition_info.offset) -- [topics] [partitions] fetch_offset
+            req:int64(ffi.new("int64_t", partition_info.offset)) -- [topics] [partitions] fetch_offset
 
             if req.api_version >= protocol.API_VERSION_V5 then
-                req:int64(-1) -- [topics] [partitions] log_start_offset
+                req:int64(ffi.new("int64_t", -1)) -- [topics] [partitions] log_start_offset
             end
 
             req:int32(10 * 1024 * 1024) -- [topics] [partitions] partition_max_bytes
@@ -178,7 +178,7 @@ function _M.fetch_encode(consumer, topic_partitions, isolation_level, client_rac
 end
 
 
-function _M.fetch_decode(resp)
+function _M.fetch_decode(resp, fetch_offset)
     local fetch_info = {}
     local api_version = resp.api_version
 
@@ -236,7 +236,7 @@ function _M.fetch_decode(resp)
                 partition_ret.preferred_read_replica = resp:int32() -- [responses] [partitions] preferred_read_replica
             end
 
-            partition_ret.records = proto_record.message_set_decode(resp) -- [responses] [partitions] records
+            partition_ret.records = proto_record.message_set_decode(resp, fetch_offset) -- [responses] [partitions] records
 
             topic_partitions.topics[topic].partitions[partition] = partition_ret
         end

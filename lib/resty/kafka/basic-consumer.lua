@@ -117,7 +117,7 @@ function _M.fetch(self, topic, partition, offset)
         local resp, err = bk:send_receive(req)
 
         if resp then
-            local result = protocol_consumer.fetch_decode(resp)
+            local result = protocol_consumer.fetch_decode(resp, offset)
             local data = result.topics[topic].partitions[partition]
 
             local errcode = data.errcode
