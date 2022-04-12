@@ -3,7 +3,7 @@
 use Test::Nginx::Socket::Lua;
 use Cwd qw(cwd);
 
-repeat_each(2);
+repeat_each(1);
 
 plan tests => repeat_each() * (3 * blocks());
 
@@ -24,14 +24,46 @@ $ENV{TEST_NGINX_KAFKA_SASL_USER} = 'admin';
 $ENV{TEST_NGINX_KAFKA_SASL_PWD} = 'admin-secret';
 
 
+no_shuffle();
 no_long_string();
-#no_diff();
 
 run_tests();
 
 __DATA__
 
+=== TEST 1: send some test messages
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            local cjson = require "cjson"
+            local producer = require "resty.kafka.producer"
 
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local message = "msg"
+
+            local p = producer:new(broker_list)
+
+            for i = 1, 135 do
+                local offset, err = p:send("test-consumer", nil, message .. tostring(i))
+                if not offset then
+                    ngx.say("send err:", err)
+                    return
+                end
+            end
+
+            ngx.say("offset: ", tostring(offset))
+        ';
+    }
+--- request
+GET /t
+--- response_body_like
+.*offset.*
+--- no_error_log
+[error]
 
 
 
@@ -83,7 +115,7 @@ test-consumer: partition 1, offset: 0LL
 --- config
     location /t {
         content_by_lua '
-            ngx.sleep(5) -- wait 5 second for kafka sync
+            ngx.sleep(1) -- wait 1 second for kafka
             local cjson = require("cjson")
             local bconsumer = require("resty.kafka.basic-consumer")
             local protocol_consumer = require("resty.kafka.protocol.consumer")
@@ -114,7 +146,7 @@ test-consumer: partition 1, offset: 0LL
 --- request
 GET /t
 --- response_body
-test-consumer: partition 0, offset: 134LL
-test-consumer: partition 1, offset: 136LL
+test-consumer: partition 0, offset: 67LL
+test-consumer: partition 1, offset: 68LL
 --- no_error_log
 [error]
