@@ -48,9 +48,9 @@ __DATA__
             local p = producer:new(broker_list)
 
             for i = 1, 135 do
-                --local offset, err = p:send("test-consumer", nil, message .. tostring(i))
+                local offset, err = p:send("test-consumer", nil, message .. tostring(i))
                 if not offset then
-                    --ngx.say("send err:", err)
+                    ngx.say("send err:", err)
                     return
                 end
             end
