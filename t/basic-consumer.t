@@ -150,3 +150,83 @@ test-consumer: partition 0, offset: 67LL
 test-consumer: partition 1, offset: 68LL
 --- no_error_log
 [error]
+
+
+
+=== TEST 4: fetch message (first)
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            local cjson = require("cjson")
+            local bconsumer = require("resty.kafka.basic-consumer")
+            local protocol_consumer = require("resty.kafka.protocol.consumer")
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local c = bconsumer:new(broker_list)
+
+            local ret0, err = c:fetch("test-consumer", 0, 0) -- partition 0, offset 0
+            local message0 = ""
+            for _, record in pairs(ret0.records) do
+                message0 = message0 .. record.value
+            end
+            ngx.say(message0)
+
+            local ret1, err = c:fetch("test-consumer", 1, 0) -- partition 1, offset 0
+            local message1 = ""
+            for _, record in pairs(ret1.records) do
+                message1 = message1 .. record.value
+            end
+            ngx.say(message1)
+        ';
+    }
+--- request
+GET /t
+--- response_body
+msg2msg4msg6msg8msg10msg12msg14msg16msg18msg20msg22msg24msg26msg28msg30msg32msg34msg36msg38msg40msg42msg44msg46msg48msg50msg52msg54msg56msg58msg60msg62msg64msg66msg68msg70msg72msg74msg76msg78msg80msg82msg84msg86msg88msg90msg92msg94msg96msg98msg100msg102msg104msg106msg108msg110msg112msg114msg116msg118msg120msg122msg124msg126msg128msg130msg132msg134
+msg1msg3msg5msg7msg9msg11msg13msg15msg17msg19msg21msg23msg25msg27msg29msg31msg33msg35msg37msg39msg41msg43msg45msg47msg49msg51msg53msg55msg57msg59msg61msg63msg65msg67msg69msg71msg73msg75msg77msg79msg81msg83msg85msg87msg89msg91msg93msg95msg97msg99msg101msg103msg105msg107msg109msg111msg113msg115msg117msg119msg121msg123msg125msg127msg129msg131msg133msg135
+--- no_error_log
+[error]
+
+
+
+=== TEST 5: fetch message (offset)
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            local cjson = require("cjson")
+            local bconsumer = require("resty.kafka.basic-consumer")
+            local protocol_consumer = require("resty.kafka.protocol.consumer")
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local c = bconsumer:new(broker_list)
+
+            local ret0, err = c:fetch("test-consumer", 0, 50) -- partition 0, offset 50
+            local message0 = ""
+            for _, record in pairs(ret0.records) do
+                message0 = message0 .. record.value
+            end
+            ngx.say(message0)
+
+            local ret1, err = c:fetch("test-consumer", 1, 50) -- partition 1, offset 50
+            local message1 = ""
+            for _, record in pairs(ret1.records) do
+                message1 = message1 .. record.value
+            end
+            ngx.say(message1)
+        ';
+    }
+--- request
+GET /t
+--- response_body
+msg102msg104msg106msg108msg110msg112msg114msg116msg118msg120msg122msg124msg126msg128msg130msg132msg134
+msg101msg103msg105msg107msg109msg111msg113msg115msg117msg119msg121msg123msg125msg127msg129msg131msg133msg135
+--- no_error_log
+[error]
