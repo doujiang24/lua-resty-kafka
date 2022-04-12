@@ -116,7 +116,7 @@ test-consumer: partition 1, offset: 0LL
 --- config
     location /t {
         content_by_lua '
-
+            ngx.sleep(1) -- wait 1 second for kafka sync
             local cjson = require("cjson")
             local bconsumer = require("resty.kafka.basic-consumer")
             local protocol_consumer = require("resty.kafka.protocol.consumer")
