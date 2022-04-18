@@ -40,45 +40,45 @@ function _M.list_offset(self, topic, partition, timestamp)
 
     local cli = self.client
     local broker_conf = cli:choose_broker(topic, partition)
-
     local bk, err = broker:new(broker_conf.host, broker_conf.port, self.socket_config, broker_conf.sasl_config)
+    if not bk then
+        return nil, err
+    end
 
-    if bk then
-        local req = protocol_consumer.list_offset_encode(self, {
-            topic_num = 1,
-            topics = {
-                [topic] = {
-                    partition_num = 1,
-                    partitions = {
-                        [partition] = {
-                            timestamp = timestamp
-                        }
-                    },
-                }
-            },
-        })
+    local req, err = protocol_consumer.list_offset_encode(self, {
+        topic_num = 1,
+        topics = {
+            [topic] = {
+                partition_num = 1,
+                partitions = {
+                    [partition] = {
+                        timestamp = timestamp
+                    }
+                },
+            }
+        },
+    })
+    if not req then
+        return nil, err
+    end
 
-        local resp, err = bk:send_receive(req)
+    local resp, err = bk:send_receive(req)
+    if not resp then
+        return nil, err
+    end
 
-        if resp then
-            local result = protocol_consumer.list_offset_decode(resp)
-            local data = result.topics[topic].partitions[partition]
+    local result = protocol_consumer.list_offset_decode(resp)
+    local data = result.topics[topic].partitions[partition]
 
-            local errcode = data.errcode
-            if errcode == 0 then
-                return data, nil
-            else
-                err = Errors[errcode]
-
-                ngx_log(INFO, "list offset err: ", err, ", topic: ", topic,
-                                ", partition_id: ", partition)
-
-                return nil, err
-            end
-        else
-            return nil, err
-        end
+    local errcode = data.errcode
+    if errcode == 0 then
+        return data, nil
     else
+        err = Errors[errcode]
+
+        ngx_log(INFO, "list offset err: ", err, ", topic: ", topic,
+                        ", partition_id: ", partition)
+
         return nil, err
     end
 end
@@ -96,45 +96,45 @@ end
 function _M.fetch(self, topic, partition, offset)
     local cli = self.client
     local broker_conf = cli:choose_broker(topic, partition)
-
     local bk, err = broker:new(broker_conf.host, broker_conf.port, self.socket_config, broker_conf.sasl_config)
+    if not bk then
+        return nil, err
+    end
 
-    if bk then
-        local req = protocol_consumer.fetch_encode(self, {
-            topic_num = 1,
-            topics = {
-                [topic] = {
-                    partition_num = 1,
-                    partitions = {
-                        [partition] = {
-                            offset = offset
-                        }
-                    },
-                }
-            },
-        })
+    local req = protocol_consumer.fetch_encode(self, {
+        topic_num = 1,
+        topics = {
+            [topic] = {
+                partition_num = 1,
+                partitions = {
+                    [partition] = {
+                        offset = offset
+                    }
+                },
+            }
+        },
+    })
+    if not req then
+        return nil, err
+    end
 
-        local resp, err = bk:send_receive(req)
+    local resp, err = bk:send_receive(req)
+    if not resp then
+        return nil, err
+    end
 
-        if resp then
-            local result = protocol_consumer.fetch_decode(resp, offset)
-            local data = result.topics[topic].partitions[partition]
+    local result = protocol_consumer.fetch_decode(resp, offset)
+    local data = result.topics[topic].partitions[partition]
 
-            local errcode = data.errcode
-            if errcode == 0 then
-                return data, nil
-            else
-                err = Errors[errcode]
-
-                ngx_log(INFO, "fetch message err: ", err, ", topic: ", topic,
-                                ", partition_id: ", partition)
-
-                return nil, err
-            end
-        else
-            return nil, err
-        end
+    local errcode = data.errcode
+    if errcode == 0 then
+        return data, nil
     else
+        err = Errors[errcode]
+
+        ngx_log(INFO, "fetch message err: ", err, ", topic: ", topic,
+                        ", partition_id: ", partition)
+
         return nil, err
     end
 end

@@ -35,7 +35,7 @@ __DATA__
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
-        content_by_lua '
+        content_by_lua_block '
             local cjson = require "cjson"
             local producer = require "resty.kafka.producer"
 
@@ -43,12 +43,10 @@ __DATA__
                 { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
             }
 
-            local message = "msg"
-
             local p = producer:new(broker_list)
 
             for i = 1, 135 do
-                local offset, err = p:send("test-consumer", nil, message .. tostring(i))
+                local offset, err = p:send("test-consumer", nil, tostring(i))
                 if not offset then
                     ngx.say("send err:", err)
                     return
@@ -71,7 +69,7 @@ GET /t
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
-        content_by_lua '
+        content_by_lua_block '
 
             local cjson = require("cjson")
             local bconsumer = require("resty.kafka.basic-consumer")
@@ -114,7 +112,7 @@ test-consumer: partition 1, offset: 0LL
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
-        content_by_lua '
+        content_by_lua_block '
             ngx.sleep(1) -- wait 1 second for kafka
             local cjson = require("cjson")
             local bconsumer = require("resty.kafka.basic-consumer")
@@ -157,7 +155,7 @@ test-consumer: partition 1, offset: 68LL
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
-        content_by_lua '
+        content_by_lua_block '
             local cjson = require("cjson")
             local bconsumer = require("resty.kafka.basic-consumer")
             local protocol_consumer = require("resty.kafka.protocol.consumer")
@@ -186,8 +184,8 @@ test-consumer: partition 1, offset: 68LL
 --- request
 GET /t
 --- response_body
-msg2msg4msg6msg8msg10msg12msg14msg16msg18msg20msg22msg24msg26msg28msg30msg32msg34msg36msg38msg40msg42msg44msg46msg48msg50msg52msg54msg56msg58msg60msg62msg64msg66msg68msg70msg72msg74msg76msg78msg80msg82msg84msg86msg88msg90msg92msg94msg96msg98msg100msg102msg104msg106msg108msg110msg112msg114msg116msg118msg120msg122msg124msg126msg128msg130msg132msg134
-msg1msg3msg5msg7msg9msg11msg13msg15msg17msg19msg21msg23msg25msg27msg29msg31msg33msg35msg37msg39msg41msg43msg45msg47msg49msg51msg53msg55msg57msg59msg61msg63msg65msg67msg69msg71msg73msg75msg77msg79msg81msg83msg85msg87msg89msg91msg93msg95msg97msg99msg101msg103msg105msg107msg109msg111msg113msg115msg117msg119msg121msg123msg125msg127msg129msg131msg133msg135
+2468101214161820222426283032343638404244464850525456586062646668707274767880828486889092949698100102104106108110112114116118120122124126128130132134
+13579111315171921232527293133353739414345474951535557596163656769717375777981838587899193959799101103105107109111113115117119121123125127129131133135
 --- no_error_log
 [error]
 
@@ -197,7 +195,7 @@ msg1msg3msg5msg7msg9msg11msg13msg15msg17msg19msg21msg23msg25msg27msg29msg31msg33
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
-        content_by_lua '
+        content_by_lua_block '
             local cjson = require("cjson")
             local bconsumer = require("resty.kafka.basic-consumer")
             local protocol_consumer = require("resty.kafka.protocol.consumer")
@@ -226,8 +224,8 @@ msg1msg3msg5msg7msg9msg11msg13msg15msg17msg19msg21msg23msg25msg27msg29msg31msg33
 --- request
 GET /t
 --- response_body
-msg102msg104msg106msg108msg110msg112msg114msg116msg118msg120msg122msg124msg126msg128msg130msg132msg134
-msg101msg103msg105msg107msg109msg111msg113msg115msg117msg119msg121msg123msg125msg127msg129msg131msg133msg135
+102104106108110112114116118120122124126128130132134
+101103105107109111113115117119121123125127129131133135
 --- no_error_log
 [error]
 
@@ -237,7 +235,7 @@ msg101msg103msg105msg107msg109msg111msg113msg115msg117msg119msg121msg123msg125ms
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
-        content_by_lua '
+        content_by_lua_block '
             local cjson = require("cjson")
             local bconsumer = require("resty.kafka.basic-consumer")
             local protocol_consumer = require("resty.kafka.protocol.consumer")

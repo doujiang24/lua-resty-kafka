@@ -104,6 +104,10 @@ function _M.list_offset_encode(consumer, topic_partitions, isolation_level)
                                                   protocol.API_VERSION_V0,
                                                   protocol.API_VERSION_V2)
 
+    if api_version < 0 then
+        return nil, "API version choice failed"
+    end
+
     local req = request:new(protocol.OffsetRequest,
                             protocol.correlation_id(consumer),
                             client.client_id, api_version)
@@ -169,6 +173,10 @@ function _M.fetch_encode(consumer, topic_partitions, isolation_level, client_rac
     local api_version = client:choose_api_version(request.FetchRequest,
                                                        protocol.API_VERSION_V0,
                                                        protocol.API_VERSION_V11)
+
+    if api_version < 0 then
+        return nil, "API version choice failed"
+    end
 
     local req = request:new(request.FetchRequest,
                             protocol.correlation_id(consumer),

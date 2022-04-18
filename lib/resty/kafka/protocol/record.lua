@@ -59,7 +59,7 @@ local function _message_set_v0_1_decode(resp)
     message.key = resp:bytes()
     message.value = resp:bytes()
 
-    return {message}, nil
+    return {message}
 end
 
 
@@ -154,7 +154,7 @@ local function _message_set_v2_decode(resp, fetch_offset)
         ::continue::
     end
 
-    return messages, nil, nil
+    return messages
 end
 
 
