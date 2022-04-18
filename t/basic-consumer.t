@@ -35,7 +35,7 @@ __DATA__
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
-        content_by_lua_block '
+        content_by_lua_block {
             local cjson = require "cjson"
             local producer = require "resty.kafka.producer"
 
@@ -54,7 +54,7 @@ __DATA__
             end
 
             ngx.say("offset: ", tostring(offset))
-        ';
+        }
     }
 --- request
 GET /t
@@ -69,7 +69,7 @@ GET /t
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
-        content_by_lua_block '
+        content_by_lua_block {
 
             local cjson = require("cjson")
             local bconsumer = require("resty.kafka.basic-consumer")
@@ -96,7 +96,7 @@ GET /t
             end
 
             ngx.say("test-consumer: partition 1, offset: ", offset1.offset)
-        ';
+        }
     }
 --- request
 GET /t
@@ -112,7 +112,7 @@ test-consumer: partition 1, offset: 0LL
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
-        content_by_lua_block '
+        content_by_lua_block {
             ngx.sleep(1) -- wait 1 second for kafka
             local cjson = require("cjson")
             local bconsumer = require("resty.kafka.basic-consumer")
@@ -139,7 +139,7 @@ test-consumer: partition 1, offset: 0LL
             end
 
             ngx.say("test-consumer: partition 1, offset: ", offset1.offset)
-        ';
+        }
     }
 --- request
 GET /t
@@ -155,7 +155,7 @@ test-consumer: partition 1, offset: 68LL
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
-        content_by_lua_block '
+        content_by_lua_block {
             local cjson = require("cjson")
             local bconsumer = require("resty.kafka.basic-consumer")
             local protocol_consumer = require("resty.kafka.protocol.consumer")
@@ -179,7 +179,7 @@ test-consumer: partition 1, offset: 68LL
                 message1 = message1 .. record.value
             end
             ngx.say(message1)
-        ';
+        }
     }
 --- request
 GET /t
@@ -195,7 +195,7 @@ GET /t
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
-        content_by_lua_block '
+        content_by_lua_block {
             local cjson = require("cjson")
             local bconsumer = require("resty.kafka.basic-consumer")
             local protocol_consumer = require("resty.kafka.protocol.consumer")
@@ -219,7 +219,7 @@ GET /t
                 message1 = message1 .. record.value
             end
             ngx.say(message1)
-        ';
+        }
     }
 --- request
 GET /t
@@ -235,7 +235,7 @@ GET /t
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
-        content_by_lua_block '
+        content_by_lua_block {
             local cjson = require("cjson")
             local bconsumer = require("resty.kafka.basic-consumer")
             local protocol_consumer = require("resty.kafka.protocol.consumer")
@@ -255,7 +255,7 @@ GET /t
             if err == "OffsetOutOfRange" then
                 ngx.say("OffsetOutOfRange1")
             end
-        ';
+        }
     }
 --- request
 GET /t
