@@ -151,7 +151,73 @@ test-consumer: partition 1, offset: 68LL
 
 
 
-=== TEST 4: fetch message (first)
+=== TEST 4: list offset (topic not exist)
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua_block {
+            ngx.sleep(1) -- wait 1 second for kafka
+            local cjson = require("cjson")
+            local bconsumer = require("resty.kafka.basic-consumer")
+            local protocol_consumer = require("resty.kafka.protocol.consumer")
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local c = bconsumer:new(broker_list)
+
+            -- It will return an error at the "choose broker" step, because the corresponding topic cannot be found
+            local offset, err = c:list_offset("not-exist-topic", 0, protocol_consumer.LIST_OFFSET_TIMESTAMP_LAST)
+            if not offset then
+                ngx.say(err)
+                return
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+not found topic
+--- no_error_log
+[error]
+
+
+
+=== TEST 5: list offset (partition not exist)
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua_block {
+            ngx.sleep(1) -- wait 1 second for kafka
+            local cjson = require("cjson")
+            local bconsumer = require("resty.kafka.basic-consumer")
+            local protocol_consumer = require("resty.kafka.protocol.consumer")
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local c = bconsumer:new(broker_list)
+
+            -- It will return an error at the "choose broker" step, because the corresponding topic cannot be found
+            local offset, err = c:list_offset("test-consumer", 999, protocol_consumer.LIST_OFFSET_TIMESTAMP_LAST)
+            if not offset then
+                ngx.say(err)
+                return
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+not found partition
+--- no_error_log
+[error]
+
+
+
+=== TEST 6: fetch message (first)
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
@@ -191,7 +257,7 @@ GET /t
 
 
 
-=== TEST 5: fetch message (offset)
+=== TEST 7: fetch message (offset)
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
@@ -231,7 +297,7 @@ GET /t
 
 
 
-=== TEST 6: fetch message (empty)
+=== TEST 8: fetch message (empty)
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
@@ -262,5 +328,65 @@ GET /t
 --- response_body
 OffsetOutOfRange0
 OffsetOutOfRange1
+--- no_error_log
+[error]
+
+
+
+=== TEST 9: fetch message (topic not exist)
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua_block {
+            local cjson = require("cjson")
+            local bconsumer = require("resty.kafka.basic-consumer")
+            local protocol_consumer = require("resty.kafka.protocol.consumer")
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local c = bconsumer:new(broker_list)
+
+            local ret, err = c:fetch("not-exist-topic", 0, 0) -- partition 0, offset 0
+            if not ret then
+                ngx.say(err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+not found topic
+--- no_error_log
+[error]
+
+
+
+=== TEST 10: fetch message (partition not exist)
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua_block {
+            local cjson = require("cjson")
+            local bconsumer = require("resty.kafka.basic-consumer")
+            local protocol_consumer = require("resty.kafka.protocol.consumer")
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local c = bconsumer:new(broker_list)
+
+            local ret, err = c:fetch("test-consumer", 999, 0) -- partition 999, offset 0
+            if not ret then
+                ngx.say(err)
+            end
+        }
+    }
+--- request
+GET /t
+--- response_body
+not found partition
 --- no_error_log
 [error]

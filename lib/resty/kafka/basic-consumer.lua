@@ -39,7 +39,11 @@ function _M.list_offset(self, topic, partition, timestamp)
     timestamp = timestamp or protocol_consumer.LIST_OFFSET_TIMESTAMP_FIRST
 
     local cli = self.client
-    local broker_conf = cli:choose_broker(topic, partition)
+    local broker_conf, err = cli:choose_broker(topic, partition)
+    if not broker_conf then
+        return nil, err
+    end
+
     local bk, err = broker:new(broker_conf.host, broker_conf.port, self.socket_config, broker_conf.sasl_config)
     if not bk then
         return nil, err
@@ -95,7 +99,11 @@ end
 -- @return err       The error of request, may be nil
 function _M.fetch(self, topic, partition, offset)
     local cli = self.client
-    local broker_conf = cli:choose_broker(topic, partition)
+    local broker_conf, err = cli:choose_broker(topic, partition)
+    if not broker_conf then
+        return nil, err
+    end
+
     local bk, err = broker:new(broker_conf.host, broker_conf.port, self.socket_config, broker_conf.sasl_config)
     if not bk then
         return nil, err
