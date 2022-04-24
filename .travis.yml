@@ -61,6 +61,7 @@ script:
   - sudo sed -i '$asasl\.enabled\.mechanisms=PLAIN' /usr/local/kafka/config/server.properties
   - sudo sed -i '$aallow\.everyone\.if\.no\.acl\.found=true' /usr/local/kafka/config/server.properties
   - sudo sed -i '$aauthorizer\.class\.name=kafka.security.auth.SimpleAclAuthorizer' /usr/local/kafka/config/server.properties
+  - sudo sed -i '$aauto\.create\.topics\.enable=false' /usr/local/kafka/config/server.properties
   - sudo cat  /usr/local/kafka/config/server.properties
 
   - sudo touch /usr/local/kafka/config/kafka_server_jass.conf
