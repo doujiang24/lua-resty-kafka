@@ -6,6 +6,7 @@ local crc32c = protocol.crc32c
 local ngx_log = ngx.log
 local ngx_crc32 = ngx.crc32_long
 local ERR = ngx.ERR
+local INFO = ngx.INFO
 local table_insert = table.insert
 local band = bit.band
 local math_abs = math.abs
@@ -136,6 +137,9 @@ local function _message_set_v2_decode(resp, fetch_offset)
             resp:varint() -- keyLength skipped
             resp:int16() -- ControlBatch version skipped
             resp:int16() -- ControlBatch type skipped
+
+            ngx_log(INFO, "A Control Batch was skipped during the parsing of the message v2")
+
             goto continue
         end
 
