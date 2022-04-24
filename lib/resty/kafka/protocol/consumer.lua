@@ -28,7 +28,7 @@ local function _list_offset_encode(req, isolation_level, topic_partitions)
 
         for partition_id, partition_info in pairs(partitions.partitions) do
             req:int32(partition_id) -- [topics] [partitions] partition_index
-            req:int64(ffi.new("int64_t", partition_info.timestamp)) -- [topics] [partitions] timestamp
+            req:int64(partition_info.timestamp) -- [topics] [partitions] timestamp
 
             if req.api_version == protocol.API_VERSION_V0 then
                 req:int32(1) -- [topics] [partitions] max_num_offsets
@@ -71,10 +71,10 @@ local function _fetch_encode(req, isolation_level, topic_partitions, rack_id)
                 req:int32(-1) -- [topics] [partitions] current_leader_epoch
             end
 
-            req:int64(ffi.new("int64_t", partition_info.offset)) -- [topics] [partitions] fetch_offset
+            req:int64(partition_info.offset) -- [topics] [partitions] fetch_offset
 
             if req.api_version >= protocol.API_VERSION_V5 then
-                req:int64(ffi.new("int64_t", -1)) -- [topics] [partitions] log_start_offset
+                req:int64(-1) -- [topics] [partitions] log_start_offset
             end
 
             req:int32(10 * 1024 * 1024) -- [topics] [partitions] partition_max_bytes
