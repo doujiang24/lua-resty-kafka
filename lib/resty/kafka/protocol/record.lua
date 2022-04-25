@@ -19,7 +19,7 @@ local _M = {}
 -- Tip: The return value message contains the int64 value, which is of
 -- type cdata and cannot be used directly in some scenarios.
 -- @author bzp2010 <bzp2010@apache.org>
-local function _message_set_v0_1_decode(resp)
+local function _message_set_v0_1_decode(resp, ret)
     local message = {}
 
     message.offset = resp:int64()
@@ -34,7 +34,7 @@ local function _message_set_v0_1_decode(resp)
     -- negative value is not considered here.
     if message.offset < 0 then
         resp:close()
-        return {} -- return an empty message table
+        return "empty message" -- return error
     end
 
     local message_size = resp:int32()
@@ -60,7 +60,9 @@ local function _message_set_v0_1_decode(resp)
     message.key = resp:bytes()
     message.value = resp:bytes()
 
-    return {message}
+    table_insert(ret, message)
+
+    return nil -- error
 end
 
 
@@ -68,8 +70,8 @@ end
 -- Tip: The return value message contains the int64 value, which is of
 -- type cdata and cannot be used directly in some scenarios.
 -- @author bzp2010 <bzp2010@apache.org>
-local function _message_set_v2_decode(resp, fetch_offset)
-    local messages = {}
+local function _message_set_v2_decode(resp, ret, fetch_offset)
+    ret = ret or {}
 
     -- RecordBatch decoder, refer to this documents
     -- https://kafka.apache.org/documentation/#recordbatch
@@ -86,7 +88,7 @@ local function _message_set_v2_decode(resp, fetch_offset)
     local crc_content = resp:peek_bytes(resp.offset, batch_length - 4 - 1 - 4)
     local calc_crc = crc32c(crc_content)
     if crc ~= calc_crc then
-        return nil, nil, "crc checksum error"
+        return "crc checksum error"
     end
 
     -- TODO: support compressed Message Set
@@ -99,7 +101,7 @@ local function _message_set_v2_decode(resp, fetch_offset)
     -- all outdated records are discarded.
     if last_offset < fetch_offset then
         resp:close()
-        return nil, nil, "all records outdated"
+        return "all records outdated"
     end
 
     -- RecordBatch contains the timestamp starting value and the
@@ -116,7 +118,7 @@ local function _message_set_v2_decode(resp, fetch_offset)
     local record_num = resp:int32() -- [records] array length
 
     for i = 1, record_num do
-        messages[i] = {}
+        local message = {}
 
         -- Record decoder, refer to this documents
         -- https://kafka.apache.org/documentation/#record
@@ -143,12 +145,12 @@ local function _message_set_v2_decode(resp, fetch_offset)
             goto continue
         end
 
-        messages[i] = {
-            offset = base_offset + offset_delta,
-            timestamp = first_timestamp + timestamp_delta,
-            key = resp:varint_bytes(),
-            value = resp:varint_bytes()
-        }
+        message.offset = base_offset + offset_delta
+        message.timestamp = first_timestamp + timestamp_delta
+        message.key = resp:varint_bytes()
+        message.value = resp:varint_bytes()
+
+        table_insert(ret, message)
 
         -- Calculates the length of the header field by the expected end position
         -- of the message and skips the specified number of bytes.
@@ -158,7 +160,7 @@ local function _message_set_v2_decode(resp, fetch_offset)
         ::continue::
     end
 
-    return messages
+    return nil
 end
 
 
@@ -180,18 +182,14 @@ function _M.message_set_decode(resp, fetch_offset)
         local messages, messages_set_info, err
         if message_version == 0 or message_version == 1 then
             -- old MessageSet v0 or v1
-            messages, err = _message_set_v0_1_decode(resp)
+            err = _message_set_v0_1_decode(resp, ret)
         else
             -- MessageSet v2 aka RecordBatch
-            messages, messages_set_info, err = _message_set_v2_decode(resp, fetch_offset)
+            err = _message_set_v2_decode(resp, ret, fetch_offset)
         end
 
-        if not messages then
+        if err then
             ngx_log(ERR, "failed to decode message set, err: ", err)
-        else
-            for _, value in pairs(messages) do
-                table_insert(ret, value)
-            end
         end
     end
 
