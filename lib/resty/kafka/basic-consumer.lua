@@ -84,7 +84,7 @@ function _M.list_offset(self, topic, partition, timestamp)
         return nil, err
     end
 
-    return data, nil
+    return data.offset, nil
 end
 
 
