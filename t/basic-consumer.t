@@ -87,7 +87,7 @@ GET /t
                 return
             end
 
-            ngx.say("test-consumer: partition 0, offset: ", offset0.offset)
+            ngx.say("test-consumer: partition 0, offset: ", offset0)
 
             local offset1, err = c:list_offset("test-consumer", 1, protocol_consumer.LIST_OFFSET_TIMESTAMP_FIRST)
             if not offset1 then
@@ -95,7 +95,7 @@ GET /t
                 return
             end
 
-            ngx.say("test-consumer: partition 1, offset: ", offset1.offset)
+            ngx.say("test-consumer: partition 1, offset: ", offset1)
         }
     }
 --- request
@@ -130,7 +130,7 @@ test-consumer: partition 1, offset: 0LL
                 return
             end
 
-            ngx.say("test-consumer: partition 0, offset: ", offset0.offset)
+            ngx.say("test-consumer: partition 0, offset: ", offset0)
 
             local offset1, err = c:list_offset("test-consumer", 1, protocol_consumer.LIST_OFFSET_TIMESTAMP_LAST)
             if not offset1 then
@@ -138,7 +138,7 @@ test-consumer: partition 1, offset: 0LL
                 return
             end
 
-            ngx.say("test-consumer: partition 1, offset: ", offset1.offset)
+            ngx.say("test-consumer: partition 1, offset: ", offset1)
         }
     }
 --- request

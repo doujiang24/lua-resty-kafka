@@ -33,7 +33,7 @@ end
 -- @param topic      The name of topic
 -- @param partition  The partition of topic
 -- @param timestamp  The starting timestamp of the obtained message offset
--- @return offset    The obtained offset value, which is in a table, may be nil
+-- @return offset    The obtained offset value, may be nil
 -- @return err       The error of request, may be nil
 function _M.list_offset(self, topic, partition, timestamp)
     timestamp = timestamp or protocol_consumer.LIST_OFFSET_TIMESTAMP_FIRST
