@@ -51,6 +51,7 @@ jobs:
           sudo sed -i '$asasl\.enabled\.mechanisms=PLAIN' /usr/local/kafka/config/server.properties
           sudo sed -i '$aallow\.everyone\.if\.no\.acl\.found=true' /usr/local/kafka/config/server.properties
           sudo sed -i '$aauthorizer\.class\.name=kafka.security.auth.SimpleAclAuthorizer' /usr/local/kafka/config/server.properties
+          sudo sed -i '$aauto\.create\.topics\.enable=false' /usr/local/kafka/config/server.properties
           sudo cat  /usr/local/kafka/config/server.properties
 
           sudo touch /usr/local/kafka/config/kafka_server_jass.conf
@@ -76,6 +77,7 @@ jobs:
           /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test3
           /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test4
           /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test5
+          /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test-consumer
 
       - name: Install OpenResty
         run: |
