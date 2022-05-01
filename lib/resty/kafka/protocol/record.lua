@@ -42,7 +42,7 @@ local function _message_set_v0_1_decode(resp, ret)
     local crc_content = resp:peek_bytes(resp.offset, message_size - 4)
     local calc_crc = ngx_crc32(crc_content)
     if crc ~= calc_crc and math_abs(crc) + math_abs(calc_crc) ~= 4294967296 then
-        return nil, "crc checksum error"
+        return "crc checksum error"
     end
 
     local magic_byte = resp:int8()
