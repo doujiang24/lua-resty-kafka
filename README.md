@@ -24,10 +24,10 @@ Table of Contents
             * [offset](#offset)
             * [flush](#flush)
     * [resty.kafka.basic-consumer](#restykafkabasic-consumer)
-        * [Methods](#methods)
-            * [new](#new)
-            * [list_offset](#list_offset)
-            * [fetch](#fetch)
+        * [Methods](#basic-consumer-methods)
+            * [new](#basic-consumer-method-new)
+            * [list_offset](#basic-consumer-method-list_offset)
+            * [fetch](#basic-consumer-method-fetch)
 * [Installation](#installation)
 * [TODO](#todo)
 * [Author](#author)
@@ -380,9 +380,9 @@ In a single call, only the information of a single partition in a single topic c
 
 [Back to TOC](#table-of-contents)
 
-### Methods
+### Methods {#basic-consumer-methods}
 
-#### new
+#### new {#basic-consumer-method-new}
 
 `syntax: c = bconsumer:new(broker_list, client_config)`
 
@@ -441,7 +441,7 @@ client config
 
 [Back to TOC](#table-of-contents)
 
-#### list_offset
+#### list_offset {#basic-consumer-method-list_offset}
 `syntax: offset, err = c:list_offset(topic, partition, timestamp)`
 
 The parameter timestamp can be a UNIX timestamp or a constant defined in `resty.kafka.protocol.consumer`, `LIST_OFFSET_TIMESTAMP_LAST`, `LIST_OFFSET_TIMESTAMP_FIRST`, `LIST_OFFSET_TIMESTAMP_MAX`, used to get the initial and latest offsets, etc., semantics with the ListOffsets API in Apache Kafka. See: https://kafka.apache.org/protocol.html#The_Messages_ListOffsets
@@ -451,7 +451,7 @@ In case of errors, returns `nil` with a string describing the error.
 
 [Back to TOC](#table-of-contents)
 
-#### fetch
+#### fetch {#basic-consumer-method-fetch}
 
 `syntax: result, err = c:fetch(topic, partition, offset)`
 
