@@ -189,7 +189,7 @@ client config
 
 * `resolver`
 
-    Specifies a host to ip resolving map (as a table or anything indexable). Default `nil`, no resolving performed. Example `{ some_host = "10.11.12.13" }`
+    Specifies a function to host resolving, which returns a string of IP or `nil`, to override system default host resolver. Default `nil`, no resolving performed. Example `function(host) if host == "some_host" then return "10.11.12.13" end end`
 
 [Back to TOC](#table-of-contents)
 
