@@ -22,6 +22,7 @@ Table of Contents
             * [send](#send)
             * [offset](#offset)
             * [flush](#flush)
+* [Errors](#errors)
 * [Installation](#installation)
 * [TODO](#todo)
 * [Author](#author)
@@ -344,6 +345,18 @@ Always return `true`.
 
 
 [Back to TOC](#table-of-contents)
+
+Errors
+======
+
+When you call the modules provided in this library, you may get some errors.
+Depending on the source, they can be divided into the following categories.
+
+* Network errors: such as connection rejected, connection timeout, etc. You need to check the connection status of each service in your environment.
+
+* Metadata-related errors: such as Metadata or ApiVersion data cannot be retrieved properly; the specified topic or partition does not exist, etc. You need to check the Kafka Broker and client configuration.
+
+* Error returned by Kafka: sometimes Kafka will include err_code data in the response data, and in the current library we provide [a list of mappings](lib/resty/kafka/errors.lua) corresponding to the textual descriptions. To learn more about these errors, see the descriptions in the [Kafka documentation](https://kafka.apache.org/protocol.html#protocol_error_codes).
 
 Installation
 ============
