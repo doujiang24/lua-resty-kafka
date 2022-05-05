@@ -3,6 +3,7 @@
 
 local broker = require "resty.kafka.broker"
 local request = require "resty.kafka.request"
+local Errors = require "resty.kafka.errors"
 
 
 local setmetatable = setmetatable
@@ -112,6 +113,45 @@ local function metadata_decode(resp)
 end
 
 
+local function api_versions_encode(client_id)
+    local id = 1    -- hard code correlation_id
+    return request:new(request.ApiVersionsRequest, id, client_id, request.API_VERSION_V2)
+end
+
+
+local function api_versions_decode(resp)
+    local errcode = resp:int16()
+
+    local api_keys_num = resp:int32()
+    local api_keys = new_tab(0, api_keys_num)
+    for i = 1, api_keys_num do
+        local api_key, min_version, max_version = resp:int16(), resp:int16(), resp:int16()
+        api_keys[api_key] = {
+            min_version = min_version,
+            max_version = max_version,
+        }
+    end
+
+    return errcode, api_keys
+end
+
+
+local function _fetch_api_versions(broker, client_id)
+    local resp, err = broker:send_receive(api_versions_encode(client_id))
+    if not resp then
+        return nil, err
+    else
+        local errcode, api_versions = api_versions_decode(resp)
+
+        if errcode ~= 0 then
+            return nil, Errors[err]
+        else
+            return api_versions, nil
+        end
+    end
+end
+
+
 local function _fetch_metadata(self, new_topic)
     local topics, num = {}, 0
     for tp, _p in pairs(self.topic_partitions) do
@@ -151,7 +191,16 @@ local function _fetch_metadata(self, new_topic)
             end
             self.brokers, self.topic_partitions = brokers, topic_partitions
 
-            return brokers, topic_partitions
+            -- fetch ApiVersions for compatibility
+            local api_versions, err = _fetch_api_versions(bk, self.client_id)
+            if not api_versions then
+                ngx_log(INFO, "broker fetch api versions failed, err:", err,
+                          ", host: ", broker.host, ", port: ", broker.port)
+            else
+                self.api_versions = api_versions
+
+                return brokers, topic_partitions, api_versions
+            end
         end
     end
 
@@ -181,7 +230,7 @@ function _M.new(self, broker_list, client_config)
     local opts = client_config or {}
     local socket_config = {
         socket_timeout = opts.socket_timeout or 3000,
-        keepalive_timeout = opts.keepalive_timeout or 600 * 1000,   -- 10 min
+        keepalive_timeout = opts.keepalive_timeout or (600 * 1000),   -- 10 min
         keepalive_size = opts.keepalive_size or 2,
         ssl = opts.ssl or false,
         ssl_verify = opts.ssl_verify or false
@@ -191,6 +240,7 @@ function _M.new(self, broker_list, client_config)
         broker_list = broker_list,
         topic_partitions = {},
         brokers = {},
+        api_versions = {}, -- support APIs version on broker
         client_id = "worker" .. pid(),
         socket_config = socket_config,
     }, mt)
@@ -232,6 +282,35 @@ function _M.choose_broker(self, topic, partition_id)
     end
 
     return config
+end
+
+
+-- select the api version to use, the maximum version will
+-- be used within the allowed range
+function _M.choose_api_version(self, api_key, min_version, max_version)
+    local api_version = self.api_versions[api_key]
+
+    if not api_version then
+        return -1
+    end
+
+    local broker_min_version, broker_max_version = api_version.min_version, api_version.max_version
+
+    if min_version and max_version then
+        if broker_max_version < max_version then
+            if broker_max_version < min_version then
+                return -1
+            else
+                return broker_max_version
+            end
+        elseif broker_min_version > max_version then
+            return -1
+        else
+            return max_version
+        end
+    else
+        return broker_max_version
+    end
 end
 
 

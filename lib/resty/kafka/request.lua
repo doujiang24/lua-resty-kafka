@@ -68,6 +68,8 @@ end
 
 -- XX int can be cdata: LL or lua number
 local function str_int64(int)
+    int = int * 1LL
+
     return char(tonumber(band(rshift(int, 56), 0xff)),
                 tonumber(band(rshift(int, 48), 0xff)),
                 tonumber(band(rshift(int, 40), 0xff)),
@@ -111,6 +113,17 @@ function _M.new(self, apikey, correlation_id, client_id, api_version)
         offset = offset,
         len = len,
     }, mt)
+end
+
+
+function _M.int8(self, int)
+    local req = self._req
+    local offset = self.offset
+
+    req[offset] = str_int8(int)
+
+    self.offset = offset + 1
+    self.len = self.len + 1
 end
 
 

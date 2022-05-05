@@ -211,3 +211,87 @@ GET /t
 .*replicas.*
 --- no_error_log
 [error]
+
+
+
+=== TEST 6: ApiVersions fetch
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+
+            local cjson = require "cjson"
+            local client = require "resty.kafka.client"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local messages = {
+                "halo world",
+            }
+
+            local cli = client:new(broker_list)
+
+            local brokers, partitions = cli:fetch_metadata("test")
+            
+            ngx.say(cjson.encode(cli.api_versions))
+        ';
+    }
+--- request
+GET /t
+--- response_body eval
+qr/\"max_version\":/ and qr /\"min_version\":/
+--- no_error_log
+[error]
+
+
+
+=== TEST 7: ApiVersions choose
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+
+            local cjson = require "cjson"
+            local request = require "resty.kafka.request"
+            local client = require "resty.kafka.client"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local messages = {
+                "halo world",
+            }
+
+            local cli = client:new(broker_list)
+
+            local brokers, partitions = cli:fetch_metadata("test")
+
+            -- not input version range
+            ngx.say(cli:choose_api_version(request.FetchRequest))
+
+            -- not exist api_key
+            ngx.say(cli:choose_api_version(-1))
+
+            -- set max version to -1 to break version choose
+            ngx.say(cli:choose_api_version(request.FetchRequest, 0, -1))
+
+            -- set lower max version to limit the API version
+            ngx.say(cli:choose_api_version(request.FetchRequest, 0, 5))
+            
+            -- set higher max version to use the highest API version supported by broker
+            ngx.say(cli:choose_api_version(request.FetchRequest, 0, 9999))
+        ';
+    }
+--- request
+GET /t
+--- response_body
+11
+-1
+-1
+5
+11
+--- no_error_log
+[error]
