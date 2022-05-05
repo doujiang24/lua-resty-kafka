@@ -176,7 +176,7 @@ local function _fetch_metadata(self, new_topic)
         local host, port, sasl_config = broker_list[i].host,
                                         broker_list[i].port,
                                         broker_list[i].sasl_config
-        host = sc.resolver or sc.resolver(host) or host
+        host = sc.resolver and sc.resolver(host) or host
         local bk = broker:new(host, port, sc, sasl_config)
 
         local resp, err = bk:send_receive(req)
