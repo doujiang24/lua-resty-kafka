@@ -314,12 +314,12 @@ GET /t
 
             local _, err = c:fetch("test-consumer", 0, 200) -- partition 0, offset 200
             if err == "OffsetOutOfRange" then
-                ngx.say("OffsetOutOfRange0")
+                ngx.say("OFFSET_OUT_OF_RANGE0")
             end
 
             local _, err = c:fetch("test-consumer", 1, 200) -- partition 1, offset 200
             if err == "OffsetOutOfRange" then
-                ngx.say("OffsetOutOfRange1")
+                ngx.say("OFFSET_OUT_OF_RANGE1")
             end
         }
     }
