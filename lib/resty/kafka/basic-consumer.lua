@@ -76,7 +76,7 @@ function _M.list_offset(self, topic, partition, timestamp)
 
     local errcode = data.errcode
     if errcode ~= 0 then
-        err = Errors[errcode]
+        err = Errors[errcode].msg
 
         ngx_log(INFO, "list offset err: ", err, ", topic: ", topic,
             ", partition_id: ", partition)
@@ -136,7 +136,7 @@ function _M.fetch(self, topic, partition, offset)
 
     local errcode = data.errcode
     if errcode ~= 0 then
-        err = Errors[errcode]
+        err = Errors[errcode].msg
 
         ngx_log(INFO, "fetch message err: ", err, ", topic: ", topic,
             ", partition_id: ", partition)
