@@ -313,21 +313,21 @@ GET /t
             local c = bconsumer:new(broker_list)
 
             local _, err = c:fetch("test-consumer", 0, 200) -- partition 0, offset 200
-            if err == "OffsetOutOfRange" then
-                ngx.say("OffsetOutOfRange0")
+            if err == "OFFSET_OUT_OF_RANGE" then
+                ngx.say(err.."0")
             end
 
             local _, err = c:fetch("test-consumer", 1, 200) -- partition 1, offset 200
-            if err == "OffsetOutOfRange" then
-                ngx.say("OffsetOutOfRange1")
+            if err == "OFFSET_OUT_OF_RANGE" then
+                ngx.say(err.."1")
             end
         }
     }
 --- request
 GET /t
 --- response_body
-OffsetOutOfRange0
-OffsetOutOfRange1
+OFFSET_OUT_OF_RANGE0
+OFFSET_OUT_OF_RANGE1
 --- no_error_log
 [error]
 
