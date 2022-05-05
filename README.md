@@ -503,7 +503,7 @@ Depending on the source, they can be divided into the following categories.
 
 * Metadata-related errors: such as Metadata or ApiVersion data cannot be retrieved properly; the specified topic or partition does not exist, etc. You need to check the Kafka Broker and client configuration.
 
-* Error returned by Kafka: sometimes Kafka will include err_code data in the response data, and in the current library we provide [a list of mappings](lib/resty/kafka/errors.lua) corresponding to the textual descriptions. To learn more about these errors, see the descriptions in the [Kafka documentation](https://kafka.apache.org/protocol.html#protocol_error_codes).
+* Error returned by Kafka: sometimes Kafka will include err_code data in the response data, When this problem occurs, the `err` in the return value looks like this `OFFSET_OUT_OF_RANGE`, all uppercase characters, and separated by underscores, and in the current library we provide [a error list of mappings](lib/resty/kafka/errors.lua) corresponding to the textual descriptions. To learn more about these errors, see the descriptions in the [Kafka documentation](https://kafka.apache.org/protocol.html#protocol_error_codes).
 
 
 Installation
