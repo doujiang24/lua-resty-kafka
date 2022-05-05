@@ -189,8 +189,7 @@ local function _fetch_metadata(self, new_topic)
             -- we have been referred to. This injects the SASL auth in.
             for _, b in pairs(brokers) do
                 b.sasl_config = sasl_config
-                local h = b.host
-                b.host = sc.resolver and sc.resolver(h) or h
+                b.host = sc.resolver and sc.resolver(b.host) or b.host
             end
             self.brokers, self.topic_partitions = brokers, topic_partitions
 
