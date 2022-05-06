@@ -1,4 +1,4 @@
-local _M = { _VERSION = "0.10" }
+local _M = { _VERSION = "0.20" }
 
 
 function _M.correlation_id(index)

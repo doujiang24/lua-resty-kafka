@@ -7,7 +7,7 @@ local ngx_log = ngx.log
 local INFO = ngx.INFO
 
 
-local _M = {}
+local _M = { _VERSION = "0.20" }
 local mt = { __index = _M }
 
 function _M.new(self, broker_list, client_config)
