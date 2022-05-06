@@ -34,6 +34,9 @@ build = {
       ["resty.kafka.sendbuffer"] = "lib/resty/kafka/sendbuffer.lua",
       ["resty.kafka.basic-consumer"] = "lib/resty/kafka/basic-consumer.lua",
       ["resty.kafka.sasl"] = "lib/resty/kafka/sasl.lua",
-      ["resty.kafka.utils"] = "lib/resty/kafka/utils.lua"
+      ["resty.kafka.utils"] = "lib/resty/kafka/utils.lua",
+      ["resty.kafka.protocol.consumer"] = "lib/resty/kafka/protocol/consumer.lua",
+      ["resty.kafka.protocol.common"] = "lib/resty/kafka/protocol/common.lua",
+      ["resty.kafka.protocol.record"] = "lib/resty/kafka/protocol/record.lua"
    }
 }
