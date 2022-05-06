@@ -295,3 +295,33 @@ GET /t
 11
 --- no_error_log
 [error]
+
+
+=== TEST 8: fetch with resolving
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+            local cjson = require "cjson"
+            local client = require "resty.kafka.client"
+
+            local count = 0
+            local function resolver(host)
+                count = count + 1
+                return "$TEST_NGINX_KAFKA_HOST"
+            end
+            local broker_list = {
+                { host = "toresolve", port = $TEST_NGINX_KAFKA_PORT },
+            }
+
+            local cli = client:new(broker_list, { resolver = resolver })
+            local brokers, partitions = cli:fetch_metadata("test")
+            ngx.say("result ", count)
+        ';
+    }
+--- request
+GET /t
+--- response_body_like
+.*result [1-9].*
+--- no_error_log
+[error]

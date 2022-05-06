@@ -188,6 +188,10 @@ client config
 
     Specifies if client should perform SSL verification. Defaults to false. See: https://github.com/openresty/lua-nginx-module#tcpsocksslhandshake
 
+* `resolver`
+
+    Specifies a function to host resolving, which returns a string of IP or `nil`, to override system default host resolver. Default `nil`, no resolving performed. Example `function(host) if host == "some_host" then return "10.11.12.13" end end`
+
 [Back to TOC](#table-of-contents)
 
 #### fetch_metadata
