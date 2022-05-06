@@ -1,7 +1,7 @@
 package = "lua-resty-kafka"
 version = "0.20-0"
 source = {
-   url = "git://github.com/doujiang24/lua-resty-kafka",
+   url = "git+https://github.com/doujiang24/lua-resty-kafka",
    tag = "v0.20"
 }
 description = {
