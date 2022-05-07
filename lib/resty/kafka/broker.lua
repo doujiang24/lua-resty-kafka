@@ -72,9 +72,11 @@ local function _sasl_auth(sock, brk)
     local req = request:new(request.SaslAuthenticateRequest, 0, cli_id,
                             request.API_VERSION_V1)
 
-    local msg = sasl.encode(brk.auth.mechanism, nil, brk.auth.user,
+    local ok,msg = sasl.encode(brk.auth.mechanism, nil, brk.auth.user,
                             brk.auth.password)
-
+    if not ok then
+        return nil, msg
+    end
     req:bytes(msg)
 
     local resp, err = _sock_send_recieve(sock, req, brk.config)

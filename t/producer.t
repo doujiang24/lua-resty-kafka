@@ -334,3 +334,37 @@ GET /t
 .*offset.*
 --- no_error_log
 [error]
+
+=== TEST 9: sasl SCRAM-SHA-512 send
+--- http_config eval: $::HttpConfig
+--- config
+    location /t {
+        content_by_lua '
+
+            local cjson = require "cjson"
+            local producer = require "resty.kafka.producer"
+
+            local broker_list = {
+                { host = "$TEST_NGINX_KAFKA_HOST", port = $TEST_NGINX_KAFKA_SASL_PORT ,
+                sasl_config = { mechanism="SCRAM-SHA-512", user="$TEST_NGINX_KAFKA_SASL_USER", password = "$TEST_NGINX_KAFKA_SASL_PWD" },},
+            }
+
+            local message = "halo world"
+
+            local p = producer:new(broker_list)
+
+            local offset, err = p:send("test", nil, message)
+            if not offset then
+                ngx.say("send err:", err)
+                return
+            end
+
+            ngx.say("offset: ", tostring(offset))
+        ';
+    }
+--- request
+GET /t
+--- response_body_like
+.*offset.*
+--- no_error_log
+[error]
