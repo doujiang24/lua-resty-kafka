@@ -96,6 +96,8 @@ script:
   - ./configure --prefix=/usr/local/openresty-debug --with-debug > build.log 2>&1 || (cat build.log && exit 1)
   - make -j$JOBS > build.log 2>&1 || (cat build.log && exit 1)
   - sudo make install > build.log 2>&1 || (cat build.log && exit 1)
+  - pwd
+  - ls ../
   - cd ../lua-resty-jit-uuid
   - git tag
   - git checkout $RESTY_OPENSSL_VER
