@@ -70,6 +70,9 @@ script:
 
   - sudo touch /usr/local/kafka/config/kafka_server_jass.conf
   - echo -e ''' KafkaServer {
+    org.apache.kafka.common.security.scram.ScramLoginModule required
+    username="admin"
+    password="admin-secret";
     org.apache.kafka.common.security.plain.PlainLoginModule required
     username="admin"
     password="admin-secret"
