@@ -13,14 +13,16 @@ local tonumber = tonumber
 local tostring = tostring
 local setmetatable = setmetatable
 
-local scram_sha_type = {["SCRAM-SHA-256"]={
-    ["name"]="sha256",
-    ["out_len"]=32
-},
-                        ["SCRAM-SHA-512"]={
-                            ["name"]="sha512",
-                            ["out_len"]=64
-                        }}
+local scram_sha_type = {
+    ["SCRAM-SHA-256"]={
+        ["name"]="sha256",
+        ["out_len"]=32
+    },
+    ["SCRAM-SHA-512"]={
+        ["name"]="sha512",
+        ["out_len"]=64
+    }
+}
 
 local _M = {}
 
@@ -139,7 +141,7 @@ function _M.scram_sha_auth(self, msg)
     auth_message = auth_message .. ',' .. server_first_message
     local pairs = ngx_re.split(server_first_message,",")
     if not pairs or #pairs == 0 then
-        return nil,"server_first_message error,message:" .. server_first_message
+        return nil, "server_first_message error,message:" .. server_first_message
     end
 
     local params = {}
@@ -153,7 +155,7 @@ function _M.scram_sha_auth(self, msg)
     local server_nonce = params["r"]
     local from, _, _ = ngx.re.find(server_nonce, c_nonce, "jo")
     if not from then
-        return nil,"Server nonce, did not start with client nonce!"
+        return nil, "Server nonce, did not start with client nonce!"
     end
 
     auth_message = auth_message .. ',c=biws,r=' .. server_nonce
@@ -184,7 +186,7 @@ function _M.scram_sha_auth(self, msg)
         return nil, "failed to generate the client proof"
     end
     local client_final_message = 'c=biws,r=' .. server_nonce .. ",p=" .. ngx.encode_base64(proof)
-    return true,client_final_message
+    return true, client_final_message
 end
 
 function _M.sock_send_receive(self, request)
@@ -229,7 +231,7 @@ function _M.send_first_message(self,msg)
     if err_code ~= 0 then
         return nil, error_msg
     end
-    return true,auth_bytes
+    return true, auth_bytes
 end
 
 return _M

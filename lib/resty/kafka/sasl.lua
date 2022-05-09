@@ -19,14 +19,14 @@ end
 
 _M.encode = function(mechanism, authz_id, user, pwd,sock)
     if mechanism == MECHANISM_PLAINTEXT then
-        return true,_encode_plaintext(authz_id, user, pwd)
+        return true, _encode_plaintext(authz_id, user, pwd)
     end
     if mechanism == MECHANISM_SCRAMSHA512 or mechanism == MECHANISM_SCRAMSHA256 then
         local scramsha_new = scramsha.new(sock,user,pwd)
         local ok, client_msg = scramsha_new:scram_sha_auth(mechanism)
-        return ok,client_msg
+        return ok, client_msg
     end
-    return true,""
+    return true, ""
 end
 
 
