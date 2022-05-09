@@ -61,7 +61,7 @@ script:
   - sudo sed -i '$assl\.key\.password = changeit' /usr/local/kafka/config/server.properties
   - sudo sed -i '$asuper\.users=User:admin' /usr/local/kafka/config/server.properties
   - sudo sed -i '$asuper\.users=User:admin' /usr/local/kafka/config/server.properties
-  - sudo sed -i '$asasl\.mechanism\.inter\.broker\.protocol=PLAIN' /usr/local/kafka/config/server.properties
+  - sudo sed -i '$asasl\.mechanism\.inter\.broker\.protocol=SCRAM-SHA-256' /usr/local/kafka/config/server.properties
   - sudo sed -i '$asasl\.enabled\.mechanisms=PLAIN,SCRAM-SHA-256,SCRAM-SHA-512' /usr/local/kafka/config/server.properties
   - sudo sed -i '$aallow\.everyone\.if\.no\.acl\.found=true' /usr/local/kafka/config/server.properties
   - sudo sed -i '$aauthorizer\.class\.name=kafka.security.auth.SimpleAclAuthorizer' /usr/local/kafka/config/server.properties
@@ -70,6 +70,10 @@ script:
 
   - sudo touch /usr/local/kafka/config/kafka_server_jass.conf
   - echo -e ''' KafkaServer {
+      org.apache.kafka.common.security.plain.ScramLoginModule required
+      username="admin"
+      password="admin-secret"
+      user_admin="admin-secret";
       org.apache.kafka.common.security.plain.PlainLoginModule required
       username="admin"
       password="admin-secret"

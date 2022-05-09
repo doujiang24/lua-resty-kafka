@@ -335,7 +335,7 @@ GET /t
 --- no_error_log
 [error]
 
-=== TEST 9: sasl SCRAM-SHA-256 send
+=== TEST 9: sasl SCRAM-SHA-256 simple send
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
@@ -369,7 +369,7 @@ GET /t
 --- no_error_log
 [error]
 
-=== TEST 10: sasl SCRAM-SHA-512 send
+=== TEST 10: sasl SCRAM-SHA-512 simple send
 --- http_config eval: $::HttpConfig
 --- config
     location /t {
