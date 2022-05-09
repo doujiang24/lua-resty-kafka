@@ -98,11 +98,11 @@ script:
   - sudo make install > build.log 2>&1 || (cat build.log && exit 1)
   - cd ../lua-resty-jit-uuid
   - git tag
-  - git checkout $RESTY_OPENSSL_VER
+  - git checkout $JIT_UUID_VER
   - cp ./lib/resty/jit-uuid.lua /usr/local/openresty-debug/lualib/resty/jit-uuid.lua
   - cd ../lua-resty-openssl
   - git tag
-  - git checkout $JIT_UUID_VER
+  - git checkout $RESTY_OPENSSL_VER
   - cp -r ./lib/resty/*  /usr/local/openresty-debug/lualib/resty
   - cd ..
   - make test
