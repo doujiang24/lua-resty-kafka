@@ -34,8 +34,8 @@ install:
   - git clone https://github.com/openresty/test-nginx.git ../test-nginx
   - if [ ! -f download-cache/kafka_$SCALA_VER-$KAFKA_VER.tgz ]; then wget -P download-cache https://archive.apache.org/dist/kafka/$KAFKA_VER/kafka_$SCALA_VER-$KAFKA_VER.tgz;fi
   - if [ ! -f download-cache/openresty-$OPENRESTY_VER.tar.gz ]; then wget -P download-cache https://openresty.org/download/openresty-$OPENRESTY_VER.tar.gz;fi
-  - git clone https://github.com/thibaultcha/lua-resty-jit-uuid.git ../lua-resty-jit-uuid
-  - git clone https://github.com/fffonion/lua-resty-openssl.git ../lua-resty-openssl
+  - git clone https://github.com/thibaultcha/lua-resty-jit-uuid.git ./lua-resty-jit-uuid
+  - git clone https://github.com/fffonion/lua-resty-openssl.git ./lua-resty-openssl
 
 script:
   - sudo tar -xzf download-cache/kafka_$SCALA_VER-$KAFKA_VER.tgz -C /usr/local/
@@ -96,8 +96,6 @@ script:
   - ./configure --prefix=/usr/local/openresty-debug --with-debug > build.log 2>&1 || (cat build.log && exit 1)
   - make -j$JOBS > build.log 2>&1 || (cat build.log && exit 1)
   - sudo make install > build.log 2>&1 || (cat build.log && exit 1)
-  - pwd
-  - ls ../
   - cd ../lua-resty-jit-uuid
   - git tag
   - git checkout $RESTY_OPENSSL_VER
