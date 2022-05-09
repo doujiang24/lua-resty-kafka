@@ -99,10 +99,10 @@ script:
   - cd ../lua-resty-jit-uuid
   - git tag
   - git checkout $JIT_UUID_VER
-  - cp ./lib/resty/jit-uuid.lua /usr/local/openresty-debug/lualib/resty/jit-uuid.lua
+  - sudo cp ./lib/resty/jit-uuid.lua /usr/local/openresty-debug/lualib/resty
   - cd ../lua-resty-openssl
   - git tag
   - git checkout $RESTY_OPENSSL_VER
-  - cp -r ./lib/resty/*  /usr/local/openresty-debug/lualib/resty
+  - sudo cp -r ./lib/resty/*  /usr/local/openresty-debug/lualib/resty
   - cd ..
   - make test
