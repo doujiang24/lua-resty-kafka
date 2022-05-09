@@ -144,7 +144,7 @@ local function _fetch_api_versions(broker, client_id)
         local errcode, api_versions = api_versions_decode(resp)
 
         if errcode ~= 0 then
-            err = Errors[errcode] or Errors[-1]
+            local err = Errors[errcode] or Errors[-1]
             return nil, err.msg
         else
             return api_versions, nil
