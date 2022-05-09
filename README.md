@@ -164,7 +164,7 @@ The `broker_list` is a list of broker, like the below
 
   support mechanism: PLAIN、SCRAM-SHA-256、SCRAM-SHA-512.
 
-  warn:SCRAM-SHA-256、SCRAM-SHA-512 need install lua-resty-openssl
+  warn:SCRAM-SHA-256、SCRAM-SHA-512 need install lua-resty-jit-uuid and lua-resty-openssl
 
 An optional `client_config` table can be specified. The following options are as follows:
 
