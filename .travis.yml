@@ -27,7 +27,7 @@ env:
     -KAFKA_VER=2.4.0
     -SCALA_VER=2.11
     -OPENRESTY_VER=1.15.8.2
-    -RESTY_OPENSSL_VER=0.8.8-1
+    -RESTY_OPENSSL_VER=0.8.8
     -JIT_UUID_VER=0.0.7
 
 install:
