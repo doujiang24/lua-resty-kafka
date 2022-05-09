@@ -73,7 +73,7 @@ local function _sasl_auth(sock, brk)
                             request.API_VERSION_V1)
 
     local ok, msg = sasl.encode(brk.auth.mechanism, nil, brk.auth.user,
-                            brk.auth.password)
+                            brk.auth.password, sock)
     if not ok then
         return nil, msg
     end
