@@ -61,7 +61,7 @@ script:
   - sudo sed -i '$assl\.key\.password = changeit' /usr/local/kafka/config/server.properties
   - sudo sed -i '$asuper\.users=User:admin' /usr/local/kafka/config/server.properties
   - sudo sed -i '$asuper\.users=User:admin' /usr/local/kafka/config/server.properties
-  - sudo sed -i '$asasl\.mechanism\.inter\.broker\.protocol=SCRAM-SHA-256' /usr/local/kafka/config/server.properties
+  - sudo sed -i '$asasl\.mechanism\.inter\.broker\.protocol=PLAIN' /usr/local/kafka/config/server.properties
   - sudo sed -i '$asasl\.enabled\.mechanisms=PLAIN,SCRAM-SHA-256,SCRAM-SHA-512' /usr/local/kafka/config/server.properties
   - sudo sed -i '$aallow\.everyone\.if\.no\.acl\.found=true' /usr/local/kafka/config/server.properties
   - sudo sed -i '$aauthorizer\.class\.name=kafka.security.auth.SimpleAclAuthorizer' /usr/local/kafka/config/server.properties
@@ -89,6 +89,7 @@ script:
   - sudo sed -i '$c\exec $base_dir/kafka-run-class.sh $EXTRA_ARGS -Djava.security.auth.login.config=/usr/local/kafka/config/kafka_server_jass.conf  kafka.Kafka "$@"' /usr/local/kafka/bin/kafka-server-start.sh
   - sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server.properties
   - sleep 5
+  - /usr/local/kafka/bin/kafka-configs.sh --zookeeper localhost:2181 --alter --add-config 'SCRAM-SHA-256=[password=admin-secret],SCRAM-SHA-512=[password=admin-secret]' --entity-type users --entity-name admin
   - /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test
   - /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test2
   - /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test3
