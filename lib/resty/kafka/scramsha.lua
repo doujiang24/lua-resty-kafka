@@ -1,6 +1,5 @@
 local request = require("resty.kafka.request")
 local response = require("resty.kafka.response")
-local uuid = require("resty.jit-uuid")
 local ngx_re = require("ngx.re")
 local ngx = ngx
 local pid = ngx.worker.pid
@@ -118,7 +117,7 @@ local function xor(a, b)
 end
 
 function _M.scram_sha_auth(self, msg)
-
+    local uuid = require("resty.jit-uuid")
     local c_nonce = str_gsub(uuid(),"-","")
     local nonce = "r=" .. c_nonce
     local sasl_name = self.user
