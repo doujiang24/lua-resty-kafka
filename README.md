@@ -152,6 +152,7 @@ The `broker_list` is a list of broker, like the below
 
         // optional auth
         "sasl_config": {
+            //support mechanism: PLAIN、SCRAM-SHA-256、SCRAM-SHA-512
             "mechanism": "PLAIN",
             "user": "USERNAME",
             "password": "PASSWORD"
@@ -159,6 +160,11 @@ The `broker_list` is a list of broker, like the below
     }
 ]
 ```
+* `sasl_config`
+
+  support mechanism: PLAIN、SCRAM-SHA-256、SCRAM-SHA-512.
+
+  warn:SCRAM-SHA-256、SCRAM-SHA-512 need install lua-resty-jit-uuid and lua-resty-openssl
 
 An optional `client_config` table can be specified. The following options are as follows:
 
