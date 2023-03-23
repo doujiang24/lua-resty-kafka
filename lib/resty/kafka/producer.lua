@@ -61,8 +61,12 @@ end
 
 
 local function produce_encode(self, topic_partitions)
+    local version = request.API_VERSION_V1
+    if not self.api_version then
+        version = self.api_version 
+    end
     local req = request:new(request.ProduceRequest,
-                            correlation_id(self), self.client.client_id, request.API_VERSION_V1)
+                            correlation_id(self), self.client.client_id, version)
 
     req:int16(self.required_acks)
     req:int32(self.request_timeout)
@@ -168,15 +172,15 @@ local function _send(self, broker_conf, topic_partitions)
                         sendbuffer:offset(topic, partition_id, r.offset)
                         sendbuffer:clear(topic, partition_id)
                     else
-                        err = Errors[errcode]
+                        err = Errors[errcode] or Errors[-1]
 
                         -- set retries according to the error list
                         local retryable0 = retryable or err.retriable
 
                         local index = sendbuffer:err(topic, partition_id, err.msg, retryable0)
 
-                        ngx_log(INFO, "retry to send messages to kafka err: ", err.msg, ", retryable: ", retryable0,
-                            ", topic: ", topic, ", partition_id: ", partition_id, ", length: ", index / 2)
+                        ngx_log(INFO, "retry to send messages to kafka err: ", err.msg, "(", errcode, "), retryable: ",
+                            retryable0, ", topic: ", topic, ", partition_id: ", partition_id, ", length: ", index / 2)
                     end
                 end
             end
