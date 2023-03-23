@@ -12,6 +12,8 @@ env:
   KAFKA_VER: 2.4.0
   SCALA_VER: 2.11
   OPENRESTY_VER: 1.19.9.1
+  RESTY_OPENSSL_VER: 0.8.8
+  JIT_UUID_VER: 0.0.7
 
 jobs:
   run-test:
@@ -48,7 +50,7 @@ jobs:
           sudo sed -i '$asuper\.users=User:admin' /usr/local/kafka/config/server.properties
           sudo sed -i '$asuper\.users=User:admin' /usr/local/kafka/config/server.properties
           sudo sed -i '$asasl\.mechanism\.inter\.broker\.protocol=PLAIN' /usr/local/kafka/config/server.properties
-          sudo sed -i '$asasl\.enabled\.mechanisms=PLAIN' /usr/local/kafka/config/server.properties
+          sudo sed -i '$asasl\.enabled\.mechanisms=PLAIN,SCRAM-SHA-256,SCRAM-SHA-512' /usr/local/kafka/config/server.properties
           sudo sed -i '$aallow\.everyone\.if\.no\.acl\.found=true' /usr/local/kafka/config/server.properties
           sudo sed -i '$aauthorizer\.class\.name=kafka.security.auth.SimpleAclAuthorizer' /usr/local/kafka/config/server.properties
           sudo sed -i '$aauto\.create\.topics\.enable=false' /usr/local/kafka/config/server.properties
@@ -56,6 +58,9 @@ jobs:
 
           sudo touch /usr/local/kafka/config/kafka_server_jass.conf
           echo -e ''' KafkaServer {
+                org.apache.kafka.common.security.scram.ScramLoginModule required
+                username="admin"
+                password="admin-secret";
                 org.apache.kafka.common.security.plain.PlainLoginModule required
                 username="admin"
                 password="admin-secret"
@@ -70,8 +75,9 @@ jobs:
 
           sudo sed -i '$c\exec $base_dir/kafka-run-class.sh $EXTRA_ARGS -Djava.security.auth.login.config=/usr/local/kafka/config/kafka_server_jass.conf  kafka.Kafka "$@"' /usr/local/kafka/bin/kafka-server-start.sh
           sudo /usr/local/kafka/bin/kafka-server-start.sh  -daemon /usr/local/kafka/config/server.properties
-          
+
           sleep 5
+          /usr/local/kafka/bin/kafka-configs.sh --zookeeper localhost:2181 --alter --add-config 'SCRAM-SHA-256=[password=admin-secret],SCRAM-SHA-512=[password=admin-secret]' --entity-type users --entity-name admin
           /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test
           /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test2
           /usr/local/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092  --replication-factor 1 --partitions 2 --topic test3
@@ -89,6 +95,17 @@ jobs:
           sudo make install > build.log 2>&1 || (cat build.log && exit 1)
           sudo apt install libtest-base-perl libtext-diff-perl libipc-run3-perl liburi-perl libwww-perl libtest-longstring-perl liblist-moreutils-perl libgd-dev > build.log 2>&1 || (cat build.log && exit 1)
           sudo cpan Test::Nginx > build.log 2>&1 || (cat build.log && exit 1)
+          sudo mkdir -p /usr/local/{lua-resty-jit-uuid,lua-resty-openssl}
+          sudo git clone https://github.com/thibaultcha/lua-resty-jit-uuid.git /usr/local/lua-resty-jit-uuid
+          sudo git clone https://github.com/fffonion/lua-resty-openssl.git /usr/local/lua-resty-openssl
+          cd /usr/local/lua-resty-jit-uuid
+          sudo git tag
+          sudo git checkout $JIT_UUID_VER
+          sudo cp ./lib/resty/jit-uuid.lua /usr/local/openresty-debug/lualib/resty
+          cd /usr/local/lua-resty-openssl
+          sudo git tag
+          sudo git checkout $RESTY_OPENSSL_VER
+          sudo cp -r ./lib/resty/*  /usr/local/openresty-debug/lualib/resty
 
       - name: Run Test
         run: |
