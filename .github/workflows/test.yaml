@@ -98,11 +98,11 @@ jobs:
           sudo mkdir -p /usr/local/{lua-resty-jit-uuid,lua-resty-openssl}
           sudo git clone https://github.com/thibaultcha/lua-resty-jit-uuid.git /usr/local/lua-resty-jit-uuid
           sudo git clone https://github.com/fffonion/lua-resty-openssl.git /usr/local/lua-resty-openssl
-          sudo cd /usr/local/lua-resty-jit-uuid
+          cd /usr/local/lua-resty-jit-uuid
           sudo git tag
           sudo git checkout $JIT_UUID_VER
           sudo cp ./lib/resty/jit-uuid.lua /usr/local/openresty-debug/lualib/resty
-          sudo cd /usr/local/lua-resty-openssl
+          cd /usr/local/lua-resty-openssl
           sudo git tag
           sudo git checkout $RESTY_OPENSSL_VER
           sudo cp -r ./lib/resty/*  /usr/local/openresty-debug/lualib/resty
