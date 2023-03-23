@@ -95,13 +95,13 @@ jobs:
           sudo make install > build.log 2>&1 || (cat build.log && exit 1)
           sudo apt install libtest-base-perl libtext-diff-perl libipc-run3-perl liburi-perl libwww-perl libtest-longstring-perl liblist-moreutils-perl libgd-dev > build.log 2>&1 || (cat build.log && exit 1)
           sudo cpan Test::Nginx > build.log 2>&1 || (cat build.log && exit 1)
-          git clone https://github.com/thibaultcha/lua-resty-jit-uuid.git ./lua-resty-jit-uuid
-          git clone https://github.com/fffonion/lua-resty-openssl.git ./lua-resty-openssl
-          cd ../lua-resty-jit-uuid
+          git clone https://github.com/thibaultcha/lua-resty-jit-uuid.git /usr/local/lua-resty-jit-uuid
+          git clone https://github.com/fffonion/lua-resty-openssl.git /usr/local/lua-resty-openssl
+          cd /usr/local/lua-resty-jit-uuid
           git tag
           git checkout $JIT_UUID_VER
           sudo cp ./lib/resty/jit-uuid.lua /usr/local/openresty-debug/lualib/resty
-          cd ../lua-resty-openssl
+          cd /usr/local/lua-resty-openssl
           git tag
           git checkout $RESTY_OPENSSL_VER
           sudo cp -r ./lib/resty/*  /usr/local/openresty-debug/lualib/resty
