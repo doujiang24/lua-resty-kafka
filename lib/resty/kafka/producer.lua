@@ -62,7 +62,7 @@ end
 
 local function produce_encode(self, topic_partitions)
     local version = request.API_VERSION_V1
-    if not self.api_version then
+    if not (self.api_version == API_VERSION_V0) then
         version = self.api_version 
     end
     local req = request:new(request.ProduceRequest,
