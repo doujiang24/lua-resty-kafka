@@ -61,12 +61,8 @@ end
 
 
 local function produce_encode(self, topic_partitions)
-    local version = request.API_VERSION_V1
-    if not (self.api_version == API_VERSION_V0) then
-        version = self.api_version 
-    end
     local req = request:new(request.ProduceRequest,
-                            correlation_id(self), self.client.client_id, version)
+                            correlation_id(self), self.client.client_id, self.api_version)
 
     req:int16(self.required_acks)
     req:int32(self.request_timeout)
@@ -338,7 +334,7 @@ function _M.new(self, broker_list, producer_config, cluster_name)
         required_acks = opts.required_acks or 1,
         partitioner = opts.partitioner or default_partitioner,
         error_handle = opts.error_handle,
-        api_version = opts.api_version or API_VERSION_V0,
+        api_version = opts.api_version or API_VERSION_V1,
         async = async,
         socket_config = cli.socket_config,
         _timer_flushing_buffer = false,
