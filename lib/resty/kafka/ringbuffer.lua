@@ -1,5 +1,6 @@
 -- Copyright (C) Dejiang Zhu(doujiang24)
 
+local semaphore = require "ngx.semaphore"
 
 local setmetatable = setmetatable
 local ngx_null = ngx.null
@@ -20,6 +21,7 @@ function _M.new(self, batch_num, max_buffering)
         size = max_buffering * 3,
         start = 1,
         num = 0,
+        sema = semaphore.new(),
     }
     return setmetatable(sendbuffer, mt)
 end
@@ -30,8 +32,14 @@ function _M.add(self, topic, key, message)
     local size = self.size
 
     if num >= size then
-        return nil, "buffer overflow"
+        local ok, err = self.sema:wait(5)
+        if not ok then
+            return nil, "buffer overflow", err
+        end
     end
+
+    num = self.num
+    size = self.size
 
     local index = (self.start + num) % size
     local queue = self.queue
@@ -62,6 +70,10 @@ function _M.pop(self)
     local key, topic, message = queue[start], queue[start + 1], queue[start + 2]
 
     queue[start], queue[start + 1], queue[start + 2] = ngx_null, ngx_null, ngx_null
+
+    if self.sema:count() < 0 then
+        self.sema:post(1)
+    end
 
     return key, topic, message
 end
