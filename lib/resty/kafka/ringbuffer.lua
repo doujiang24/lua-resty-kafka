@@ -14,18 +14,18 @@ end
 local _M = {}
 local mt = { __index = _M }
 
-function _M.new(self, batch_num, max_buffering, buffer_filled_wait, wait_timeout)
+function _M.new(self, batch_num, max_buffering, wait_on_buffer_full, wait_buffer_timeout)
     local sendbuffer = {
         queue = new_tab(max_buffering * 3, 0),
         batch_num = batch_num,
         size = max_buffering * 3,
         start = 1,
         num = 0,
-        buffer_filled_wait = buffer_filled_wait,
-        wait_timeout = wait_timeout,
+        wait_on_buffer_full = wait_on_buffer_full,
+        wait_buffer_timeout = wait_buffer_timeout,
     }
 
-    if buffer_filled_wait then
+    if wait_on_buffer_full then
         sendbuffer.sema = semaphore.new()
     end
 
@@ -33,12 +33,12 @@ function _M.new(self, batch_num, max_buffering, buffer_filled_wait, wait_timeout
 end
 
 
-function _M.to_wait(self)
+function _M.try_wait_for_buffer_full(self)
     local num = self.num
     local size = self.size
 
     if num >= size then
-        if not self.buffer_filled_wait then
+        if not self.wait_on_buffer_full then
             return nil, "buffer overflow"
         end
 
@@ -54,7 +54,7 @@ end
 
 
 function _M.add(self, topic, key, message)
-    local _, err = self:to_wait()
+    local _, err = self:try_wait_for_buffer_full()
     if err ~= nil then
         return nil, err
     end
@@ -75,8 +75,8 @@ function _M.add(self, topic, key, message)
 end
 
 
-function _M.to_post(self)
-    if not self.buffer_filled_wait then
+function _M.try_release_buffer_wait(self)
+    if not self.wait_on_buffer_full then
         return nil
     end
 
@@ -105,7 +105,7 @@ function _M.pop(self)
 
     queue[start], queue[start + 1], queue[start + 2] = ngx_null, ngx_null, ngx_null
 
-    self:to_post()
+    self:try_release_buffer_wait()
 
     return key, topic, message
 end
