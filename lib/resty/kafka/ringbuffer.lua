@@ -14,32 +14,53 @@ end
 local _M = {}
 local mt = { __index = _M }
 
-function _M.new(self, batch_num, max_buffering)
+function _M.new(self, batch_num, max_buffering, buffer_filled_wait, wait_timeout)
     local sendbuffer = {
         queue = new_tab(max_buffering * 3, 0),
         batch_num = batch_num,
         size = max_buffering * 3,
         start = 1,
         num = 0,
-        sema = semaphore.new(),
+        buffer_filled_wait = buffer_filled_wait,
+        wait_timeout = wait_timeout,
     }
+
+    if buffer_filled_wait then
+        sendbuffer.sema = semaphore.new()
+    end
+
     return setmetatable(sendbuffer, mt)
 end
 
 
-function _M.add(self, topic, key, message)
+function _M.to_wait(self)
     local num = self.num
     local size = self.size
 
     if num >= size then
-        local ok, err = self.sema:wait(5)
+        if not self.buffer_filled_wait then
+            return nil, "buffer overflow"
+        end
+
+        local timeout = self.wait_timeout
+        local ok, err = self.sema:wait(timeout)
         if not ok then
-            return nil, "buffer overflow", err
+            return nil, "buffer overflow " .. err
         end
     end
 
-    num = self.num
-    size = self.size
+    return nil
+end
+
+
+function _M.add(self, topic, key, message)
+    local _, err = self:to_wait()
+    if err ~= nil then
+        return nil, err
+    end
+
+    local num = self.num
+    local size = self.size
 
     local index = (self.start + num) % size
     local queue = self.queue
@@ -51,6 +72,19 @@ function _M.add(self, topic, key, message)
     self.num = num + 3
 
     return true
+end
+
+
+function _M.to_post(self)
+    if not self.buffer_filled_wait then
+        return nil
+    end
+
+    if self.sema:count() < 0 then
+        self.sema:post(1)
+    end
+
+    return nil
 end
 
 
@@ -71,9 +105,7 @@ function _M.pop(self)
 
     queue[start], queue[start + 1], queue[start + 2] = ngx_null, ngx_null, ngx_null
 
-    if self.sema:count() < 0 then
-        self.sema:post(1)
-    end
+    self:to_post()
 
     return key, topic, message
 end

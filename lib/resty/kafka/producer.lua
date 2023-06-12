@@ -342,7 +342,8 @@ function _M.new(self, broker_list, producer_config, cluster_name)
         async = async,
         socket_config = cli.socket_config,
         _timer_flushing_buffer = false,
-        ringbuffer = ringbuffer:new(opts.batch_num or 200, opts.max_buffering or 50000),   -- 200, 50K
+        ringbuffer = ringbuffer:new(opts.batch_num or 200, opts.max_buffering or 50000,
+                opts.buffer_filled_wait or false, opts.wait_timeout or 5),   -- 200, 50K, flase, 5s
         sendbuffer = sendbuffer:new(opts.batch_num or 200, opts.batch_size or 1048576)
                         -- default: 1K, 1M
                         -- batch_size should less than (MaxRequestSize / 2 - 10KiB)
