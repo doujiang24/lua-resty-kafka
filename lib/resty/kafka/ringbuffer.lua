@@ -33,7 +33,7 @@ function _M.new(self, batch_num, max_buffering, wait_on_buffer_full, wait_buffer
 end
 
 
-function _M.try_wait_for_buffer_full(self)
+function _M.wait_when_buffer_full(self)
     local num = self.num
     local size = self.size
 
@@ -54,7 +54,7 @@ end
 
 
 function _M.add(self, topic, key, message)
-    local _, err = self:try_wait_for_buffer_full()
+    local _, err = self:wait_when_buffer_full()
     if err ~= nil then
         return nil, err
     end
@@ -75,7 +75,7 @@ function _M.add(self, topic, key, message)
 end
 
 
-function _M.try_release_buffer_wait(self)
+function _M.release_buffer_wait(self)
     if not self.wait_on_buffer_full then
         return nil
     end
@@ -105,7 +105,7 @@ function _M.pop(self)
 
     queue[start], queue[start + 1], queue[start + 2] = ngx_null, ngx_null, ngx_null
 
-    self:try_release_buffer_wait()
+    self:release_buffer_wait()
 
     return key, topic, message
 end
