@@ -335,6 +335,7 @@ buffer config ( only work `producer_type` = "async" )
     When buffer queue is full, if option passed `true`, 
     will use semaphore wait function to block coroutine until timeout or buffer queue has reduced,
     Otherwise, return "buffer overflow" error with `false`.
+    Notice, it could not be used in those phases which do not support yields, i.e. log phase.
 
 * `wait_buffer_timeout`
 

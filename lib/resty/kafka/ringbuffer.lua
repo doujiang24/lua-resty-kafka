@@ -33,7 +33,7 @@ function _M.new(self, batch_num, max_buffering, wait_on_buffer_full, wait_buffer
 end
 
 
-function _M.wait_when_buffer_full(self)
+function _M.add(self, topic, key, message)
     local num = self.num
     local size = self.size
 
@@ -47,20 +47,9 @@ function _M.wait_when_buffer_full(self)
         if not ok then
             return nil, "buffer overflow " .. err
         end
+        num = self.num
+        size = self.size
     end
-
-    return nil
-end
-
-
-function _M.add(self, topic, key, message)
-    local _, err = self:wait_when_buffer_full()
-    if err ~= nil then
-        return nil, err
-    end
-
-    local num = self.num
-    local size = self.size
 
     local index = (self.start + num) % size
     local queue = self.queue
@@ -75,16 +64,14 @@ function _M.add(self, topic, key, message)
 end
 
 
-function _M.release_buffer_wait(self)
+function _M.release_buffer_wait(self, num)
     if not self.wait_on_buffer_full then
-        return nil
+        return
     end
 
     if self.sema:count() < 0 then
-        self.sema:post(1)
+        self.sema:post(num)
     end
-
-    return nil
 end
 
 
@@ -105,7 +92,8 @@ function _M.pop(self)
 
     queue[start], queue[start + 1], queue[start + 2] = ngx_null, ngx_null, ngx_null
 
-    self:release_buffer_wait()
+    -- It is enough to release a waiter as only one message pops up
+    self:release_buffer_wait(1)
 
     return key, topic, message
 end
