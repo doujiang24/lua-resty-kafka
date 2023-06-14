@@ -33,7 +33,7 @@ function _M.new(self, batch_num, max_buffering, wait_on_buffer_full, wait_buffer
 end
 
 
-function _M.add(self, topic, key, message)
+function _M.add(self, topic, key, message, wait_timeout, depth)
     local num = self.num
     local size = self.size
 
@@ -42,13 +42,25 @@ function _M.add(self, topic, key, message)
             return nil, "buffer overflow"
         end
 
-        local timeout = self.wait_timeout
+        depth = depth or 1
+        if depth > 10 then
+            return nil, "buffer overflow and over max depth"
+        end
+
+        local timeout = wait_timeout or self.wait_buffer_timeout
+        if timeout <= 0 then
+             return nil, "buffer overflow and timeout"
+        end
+
+        local start_time = ngx.now()
         local ok, err = self.sema:wait(timeout)
         if not ok then
             return nil, "buffer overflow " .. err
         end
-        num = self.num
-        size = self.size
+        timeout = timeout - (ngx.now() - start_time)
+
+        -- since sema:post to sema:wait is async, so need to check ringbuffer is available again
+        return self:add(topic, key, message, timeout, depth + 1)
     end
 
     local index = (self.start + num) % size
