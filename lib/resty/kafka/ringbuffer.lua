@@ -64,13 +64,14 @@ function _M.add(self, topic, key, message)
 end
 
 
-function _M.release_buffer_wait(self, num)
+function _M.release_buffer_wait(self)
     if not self.wait_on_buffer_full then
         return
     end
 
+    -- It is enough to release a waiter as only one message pops up
     if self.sema:count() < 0 then
-        self.sema:post(num)
+        self.sema:post(1)
     end
 end
 
@@ -92,8 +93,7 @@ function _M.pop(self)
 
     queue[start], queue[start + 1], queue[start + 2] = ngx_null, ngx_null, ngx_null
 
-    -- It is enough to release a waiter as only one message pops up
-    self:release_buffer_wait(1)
+    self:release_buffer_wait()
 
     return key, topic, message
 end
