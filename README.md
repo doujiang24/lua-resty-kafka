@@ -329,6 +329,18 @@ buffer config ( only work `producer_type` = "async" )
     when `retryable` is `true` that means kafka server surely not committed this messages, you can safely retry to send;
     and else means maybe, recommend to log to somewhere.
 
+* `wait_on_buffer_full`
+
+    Specifies whether to wait when the buffer queue is full, Default `false`.
+    When buffer queue is full, if option passed `true`, 
+    will use semaphore wait function to block coroutine until timeout or buffer queue has reduced,
+    Otherwise, return "buffer overflow" error with `false`.
+    Notice, it could not be used in those phases which do not support yields, i.e. log phase.
+
+* `wait_buffer_timeout`
+
+    Specifies the max wait time when buffer is full, Default `5` seconds.
+
 Not support compression now.
 
 The third optional `cluster_name` specifies the name of the cluster, default `1` (yeah, it's number). You can Specifies different names when you have two or more kafka clusters. And this only works with `async` producer_type.
